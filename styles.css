@@ -515,6 +515,7 @@ body { background-color: var(--bg-dark); color: white; height: 100vh; overflow: 
 
 .form-group {
     margin-bottom: 20px;
+    margin: 10px 50px 10px 50px;
 }
 
 .form-group label {
@@ -2219,6 +2220,7 @@ body.light-theme .username {
     justify-content: space-between;
     align-items: center;
     gap: 12px;
+    width: auto;
 }
 
 #view-feed .create-post-right {
