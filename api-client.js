@@ -213,12 +213,24 @@ async function unlikePost(postId) {
   return apiRequest(`/posts/${postId}/like`, 'DELETE');
 }
 
+async function deletePost(postId) {
+  return apiRequest(`/posts/${postId}`, 'DELETE');
+}
+
 async function getComments(postId, limit = 20) {
   return apiRequest(`/posts/${postId}/comments?limit=${limit}`);
 }
 
-async function addComment(postId, comment) {
-  return apiRequest(`/posts/${postId}/comments`, 'POST', { comment });
+async function addComment(postId, comment, parentCommentId = null) {
+  return apiRequest(`/posts/${postId}/comments`, 'POST', { comment, parent_comment_id: parentCommentId });
+}
+
+async function editComment(postId, commentId, comment) {
+  return apiRequest(`/posts/${postId}/comments/${commentId}`, 'PUT', { comment });
+}
+
+async function deleteComment(postId, commentId) {
+  return apiRequest(`/posts/${postId}/comments/${commentId}`, 'DELETE');
 }
 
 // ====================================================

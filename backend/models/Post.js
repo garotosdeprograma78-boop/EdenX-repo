@@ -97,13 +97,26 @@ class Post {
     }
   }
 
-  static async addComment(postId, userId, comment) {
-    const query = `
-      INSERT INTO comments (post_id, user_id, comment_text, created_at)
-      VALUES (?, ?, ?, CURRENT_TIMESTAMP)
-    `;
+  static async addComment(postId, userId, comment, parentCommentId = null) {
+    let query;
+    let params;
+
+    if (parentCommentId) {
+      query = `
+        INSERT INTO comments (post_id, user_id, comment_text, parent_comment_id, created_at)
+        VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP)
+      `;
+      params = [postId, userId, comment, parentCommentId];
+    } else {
+      query = `
+        INSERT INTO comments (post_id, user_id, comment_text, created_at)
+        VALUES (?, ?, ?, CURRENT_TIMESTAMP)
+      `;
+      params = [postId, userId, comment];
+    }
+
     try {
-      const result = await pool.execute(query, [postId, userId, comment]);
+      const result = await pool.execute(query, params);
       return result.insertId;
     } catch (error) {
       console.error('Erro ao adicionar comentário:', error);
@@ -111,13 +124,13 @@ class Post {
     }
   }
 
-  static async getComments(postId, limit = 20) {
+  static async getComments(postId, limit = 50) {
     const query = `
       SELECT c.*, u.username, u.avatar_url
       FROM comments c
       JOIN users u ON c.user_id = u.id
       WHERE c.post_id = ?
-      ORDER BY c.created_at DESC
+      ORDER BY c.created_at ASC
       LIMIT ?
     `;
     try {
@@ -129,6 +142,35 @@ class Post {
     }
   }
 
+  static async updateComment(commentId, userId, commentText) {
+    const query = `
+      UPDATE comments
+      SET comment_text = ?, updated_at = CURRENT_TIMESTAMP
+      WHERE id = ? AND user_id = ?
+    `;
+    try {
+      const result = await pool.execute(query, [commentText, commentId, userId]);
+      return result[0].affectedRows > 0;
+    } catch (error) {
+      console.error('Erro ao atualizar comentário:', error);
+      return false;
+    }
+  }
+
+  static async deleteComment(commentId, userId) {
+    const query = `
+      DELETE FROM comments
+      WHERE id = ? AND user_id = ?
+    `;
+    try {
+      const result = await pool.execute(query, [commentId, userId]);
+      return result[0].affectedRows > 0;
+    } catch (error) {
+      console.error('Erro ao deletar comentário:', error);
+      return false;
+    }
+  }
+
   static async countByUserId(userId) {
     const query = `SELECT COUNT(*) as count FROM posts WHERE user_id = ?`;
     try {
@@ -137,6 +179,22 @@ class Post {
     } catch (error) {
       console.error('Erro ao contar posts:', error);
       return 0;
+    }
+  }
+
+  static async deletePost(postId, userId) {
+    const deleteLikesQuery = `DELETE FROM likes WHERE post_id = ?`;
+    const deleteCommentsQuery = `DELETE FROM comments WHERE post_id = ?`;
+    const deletePostQuery = `DELETE FROM posts WHERE id = ? AND user_id = ?`;
+
+    try {
+      await pool.execute(deleteLikesQuery, [postId]);
+      await pool.execute(deleteCommentsQuery, [postId]);
+      const result = await pool.execute(deletePostQuery, [postId, userId]);
+      return result[0].affectedRows > 0;
+    } catch (error) {
+      console.error('Erro ao deletar post:', error);
+      return false;
     }
   }
 }

@@ -121,13 +121,13 @@ exports.addComment = async (req, res) => {
   try {
     const userId = req.user.id;
     const { postId } = req.params;
-    const { comment } = req.body;
+    const { comment, parent_comment_id } = req.body;
 
-    if (!comment) {
+    if (!comment || !comment.trim()) {
       return res.status(400).json({ message: 'Comentário não pode estar vazio' });
     }
 
-    const commentId = await Post.addComment(postId, userId, comment);
+    const commentId = await Post.addComment(postId, userId, comment.trim(), parent_comment_id || null);
 
     res.status(201).json({
       message: 'Comentário adicionado',
@@ -142,14 +142,71 @@ exports.addComment = async (req, res) => {
 exports.getComments = async (req, res) => {
   try {
     const { postId } = req.params;
-    const { limit = 20 } = req.query;
+    const { limit = 50 } = req.query;
 
     const comments = await Post.getComments(postId, parseInt(limit));
 
-    res.json(comments);
+    res.json({ success: true, data: comments });
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: 'Erro ao carregar comentários' });
+  }
+};
+
+exports.editComment = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const { postId, commentId } = req.params;
+    const { comment } = req.body;
+
+    if (!comment || comment.trim().length === 0) {
+      return res.status(400).json({ message: 'Comentário não pode estar vazio' });
+    }
+
+    const updated = await Post.updateComment(commentId, userId, comment);
+
+    if (!updated) {
+      return res.status(403).json({ message: 'Você não pode editar este comentário' });
+    }
+
+    res.json({ success: true, message: 'Comentário atualizado com sucesso' });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Erro ao editar comentário' });
+  }
+};
+
+exports.deleteComment = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const { postId, commentId } = req.params;
+
+    const deleted = await Post.deleteComment(commentId, userId);
+    if (!deleted) {
+      return res.status(403).json({ message: 'Você não pode deletar este comentário' });
+    }
+
+    res.json({ success: true, message: 'Comentário excluído' });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Erro ao deletar comentário' });
+  }
+};
+
+exports.deletePost = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const { postId } = req.params;
+
+    const deleted = await Post.deletePost(postId, userId);
+    if (!deleted) {
+      return res.status(403).json({ message: 'Você não tem permissão para excluir este post ou ele não existe.' });
+    }
+
+    res.json({ message: 'Post excluído com sucesso.' });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Erro ao excluir post' });
   }
 };
 

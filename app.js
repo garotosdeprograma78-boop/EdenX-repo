@@ -591,6 +591,7 @@ async function renderProfileDetails(user, isSelf) {
   const followBtn = document.getElementById('profile-follow-btn');
   const messageBtn = document.getElementById('profile-message-btn');
   const editBtn = document.getElementById('btn-edit-profile');
+  const settingsBtn = document.getElementById('open-settings-btn');
 
   document.getElementById('profile-name').textContent = user.display_name || user.username;
   document.getElementById('profile-username').textContent = '@' + user.username;
@@ -621,6 +622,7 @@ async function renderProfileDetails(user, isSelf) {
     if (followBtn) followBtn.style.display = 'none';
     if (messageBtn) messageBtn.style.display = 'none';
     if (editBtn) editBtn.style.display = 'inline-block';
+    if (settingsBtn) settingsBtn.style.display = 'inline-block';
   } else {
     if (followBtn) {
       followBtn.style.display = 'inline-block';
@@ -636,10 +638,16 @@ async function renderProfileDetails(user, isSelf) {
     if (messageBtn) {
       messageBtn.style.display = 'inline-block';
       messageBtn.onclick = () => {
-        alert('Abra o chat com @' + user.username + ' (implemente conversa multimídia).');
+        if (typeof openChat === 'function') {
+          const avatar = normalizeAvatarUrl(user.avatar_url) || (SESSION.avatarUrl || 'https://i.pravatar.cc/150?u=anon');
+          openChat(user.id, user.username ? '@' + user.username : 'Chat', avatar);
+        } else {
+          alert('Abra o chat com @' + user.username + ' (implemente conversa multimídia).');
+        }
       };
     }
     if (editBtn) editBtn.style.display = 'none';
+    if (settingsBtn) settingsBtn.style.display = 'none';
   }
 
   // Atualiza sessão com dados se próprio perfil
@@ -679,20 +687,26 @@ async function loadProfilePosts(userId, username) {
 
   if (result.success && Array.isArray(result.data) && result.data.length > 0) {
     result.data.forEach(post => {
-      const postEl = document.createElement('div');
-      postEl.className = 'feed-post dark-box';
-      postEl.innerHTML = `
-        <div class="post-header">
-          <span class="username">@${username}</span>
-        </div>
-        <div class="post-container">
-          ${post.image_url ? `<div class="post-image"><img src="${post.image_url.startsWith('http') ? post.image_url : serverBase + post.image_url}" alt="Post"></div>` : ''}
-          <div class="post-info">
-            <p class="post-caption"><strong>@${username}</strong> ${post.caption || ''}</p>
-          </div>
-        </div>
-      `;
-      postsContainer.appendChild(postEl);
+      const formattedPost = typeof formatPostItem === 'function'
+        ? formatPostItem(post)
+        : {
+            id: post.id,
+            author: username,
+            avatar: post.avatar_url || '',
+            time: post.created_at ? new Date(post.created_at).toLocaleString('pt-BR') : 'Agora',
+            text: post.caption || '',
+            image: post.image_url || '',
+            location: post.location || '',
+            likes: post.likes_count || 0,
+            comments: [],
+            shares: post.shares || 0,
+            user_id: post.user_id || userId
+          };
+
+      const card = createPostCard(formattedPost);
+      if (card) {
+        postsContainer.appendChild(card);
+      }
 
       if (post.image_url) {
         const mediaEl = document.createElement('div');
@@ -718,7 +732,7 @@ async function loadProfilePosts(userId, username) {
         <div class="post-header"><span class="username">@${username}</span><small>Story</small></div>
         <div class="post-container">
           <div class="post-image"><img src="${story.image_url}" alt="Story"></div>
-          <div class="post-info"><p>Postado em: ${new Date(story.created_at).toLocaleString('pt-BR')}</p></div>
+          <div class="post-info"><p>Postado em: ${formatPostTime ? formatPostTime(story.created_at) : new Date(story.created_at).toLocaleString('pt-BR')}</p></div>
         </div>
       `;
       highlightsContainer.appendChild(storyEl);

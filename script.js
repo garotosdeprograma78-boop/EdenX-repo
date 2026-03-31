@@ -199,7 +199,6 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     let selectedImageDataUrl = null;
     let selectedLocation = '';
-    let currentCommentPostId = null;
 
     // 1. Configuração dos campos de imagem e localização
     if (selectImageBtn && imageInput) {
@@ -242,8 +241,45 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     let postsData = [];
     let selectedImageFile = null;
-    const likedPosts = new Map();
-    const savedPosts = new Map();
+    let currentCommentPostId = null;
+    let currentReplyToCommentId = null;
+    let currentEditingCommentId = null;
+
+    const commentsCache = new Map();
+    const LIKED_STORAGE_KEY = 'edenx_liked_posts';
+    const SAVED_STORAGE_KEY = 'edenx_saved_posts';
+
+    const likedPosts = new Map(JSON.parse(localStorage.getItem(LIKED_STORAGE_KEY) || '[]').map(post => [post.id, post]));
+    const savedPosts = new Map(JSON.parse(localStorage.getItem(SAVED_STORAGE_KEY) || '[]').map(post => [post.id, post]));
+
+    function persistPosts() {
+        localStorage.setItem(LIKED_STORAGE_KEY, JSON.stringify(Array.from(likedPosts.values())));
+        localStorage.setItem(SAVED_STORAGE_KEY, JSON.stringify(Array.from(savedPosts.values())));
+    }
+
+    function formatPostTime(timestamp) {
+        if (!timestamp) return 'Agora';
+
+        const dateOnly = timestamp.trim();
+        const normalized = dateOnly.replace(' ', 'T').replace('Z', '');
+
+        const [datePart, timePart] = normalized.split('T');
+        if (!datePart) return new Date(timestamp).toLocaleString('pt-BR');
+
+        const [year, month, day] = datePart.split('-');
+        const [hour = '0', minute = '0', second = '0'] = (timePart || '').split(':');
+
+        const d = new Date(
+          parseInt(year, 10),
+          parseInt(month, 10) - 1,
+          parseInt(day, 10),
+          parseInt(hour, 10),
+          parseInt(minute, 10),
+          parseInt(second, 10)
+        );
+
+        return d.toLocaleString('pt-BR');
+    }
 
     function updateLikedTab() {
         const likedContainer = document.getElementById('tab-curtidas');
@@ -303,7 +339,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             id: post.id || `post-${Date.now()}`,
             author: post.username || post.author || (SESSION.username ? SESSION.username.replace('@', '') : 'Você'),
             avatar: post.avatar_url || post.avatar || (SESSION.avatarUrl ? SESSION.avatarUrl : 'https://i.pravatar.cc/150?u=anon'),
-            time: post.created_at ? new Date(post.created_at).toLocaleString('pt-BR') : post.time || 'Agora',
+            time: post.created_at ? formatPostTime(post.created_at) : post.time || 'Agora',
             text: post.caption || post.text || '',
             image: post.image_url || post.image || '',
             location: post.location || '',
@@ -333,6 +369,11 @@ document.addEventListener('DOMContentLoaded', async () => {
     function createPostCard(post) {
         const card = document.createElement('div');
         card.className = 'post-card';
+
+        const normalizedAuthor = (post.author || '').replace(/^@/, '');
+        const normalizedSessionUser = (SESSION.username || '').replace(/^@/, '');
+        const isOwnPost = normalizedAuthor === normalizedSessionUser;
+
         card.innerHTML = `
             <div class="post-card-header">
                 <div class="post-author">
@@ -370,6 +411,9 @@ document.addEventListener('DOMContentLoaded', async () => {
                         </div>
                     </div>
                 </div>
+                <button class="icon-btn post-delete-btn" aria-label="Excluir" style="display: ${isOwnPost ? 'inline-flex' : 'none'};">
+                    <i class="fa-solid fa-trash"></i>
+                </button>
                 <button class="icon-btn" aria-label="Salvar">
                     <i class="fa-regular fa-bookmark"></i>
                 </button>
@@ -397,8 +441,6 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         if (shareBtn) {
             shareBtn.addEventListener('click', async () => {
-                post.shares = (post.shares || 0) + 1;
-                renderFeed();
                 await openShareModal(post);
             });
         }
@@ -418,9 +460,33 @@ document.addEventListener('DOMContentLoaded', async () => {
             });
         }
 
+        const deleteBtn = card.querySelector('.post-delete-btn');
+        if (deleteBtn) {
+            deleteBtn.addEventListener('click', async () => {
+                if (!confirm('Tem certeza de que deseja excluir este post?')) return;
+                const result = await deletePost(post.id);
+                if (result.success) {
+                    likedPosts.delete(post.id);
+                    savedPosts.delete(post.id);
+                    persistPosts();
+                    alert('Post excluído com sucesso.');
+                    await loadFeed();
+                    if (document.getElementById('view-profile').classList.contains('active')) {
+                        await loadProfilePosts(SESSION.userId, SESSION.username);
+                    }
+                } else {
+                    alert(result.message || 'Falha ao excluir post.');
+                }
+            });
+        }
+
         const saveBtn = card.querySelector('.icon-btn[aria-label="Salvar"] i');
         if (saveBtn) {
             saveBtn.style.color = 'white';
+            if (savedPosts.has(post.id)) {
+                saveBtn.classList.remove('fa-regular');
+                saveBtn.classList.add('fa-solid', 'saved');
+            }
             saveBtn.addEventListener('click', () => {
                 saveBtn.classList.toggle('fa-regular');
                 saveBtn.classList.toggle('fa-solid');
@@ -432,25 +498,44 @@ document.addEventListener('DOMContentLoaded', async () => {
                 } else {
                     savedPosts.delete(post.id);
                 }
+                persistPosts();
                 renderLikedAndSaved();
             });
         }
 
-        likeBtn.addEventListener('click', () => {
+        if (likedPosts.has(post.id)) {
             const icon = likeBtn.querySelector('i');
-            icon.classList.toggle('fa-regular');
-            icon.classList.toggle('fa-solid');
-            icon.classList.toggle('active');
+            icon.classList.remove('fa-regular');
+            icon.classList.add('fa-solid', 'active');
+        }
 
-            const current = parseInt(likeCount.textContent, 10);
-            const count = icon.classList.contains('active') ? current + 1 : Math.max(0, current - 1);
-            likeCount.textContent = count;
+        likeBtn.addEventListener('click', async () => {
+            const icon = likeBtn.querySelector('i');
+            const alreadyLiked = icon.classList.contains('active');
 
-            if (icon.classList.contains('active')) {
-                likedPosts.set(post.id, post);
-            } else {
-                likedPosts.delete(post.id);
+            try {
+                if (!alreadyLiked) {
+                    await likePost(post.id);
+                    likedPosts.set(post.id, post);
+                } else {
+                    await unlikePost(post.id);
+                    likedPosts.delete(post.id);
+                }
+
+                persistPosts();
+
+                icon.classList.toggle('fa-regular');
+                icon.classList.toggle('fa-solid');
+                icon.classList.toggle('active');
+
+                const current = parseInt(likeCount.textContent, 10);
+                const count = icon.classList.contains('active') ? current + 1 : Math.max(0, current - 1);
+                likeCount.textContent = count;
+            } catch (error) {
+                console.error('Erro ao processar curtida:', error);
+                alert('Não foi possível atualizar curtida.');
             }
+
             renderLikedAndSaved();
         });
         
@@ -508,6 +593,9 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     await loadFeed();
+    if (typeof renderLikedAndSaved === 'function') {
+        renderLikedAndSaved();
+    }
 
     // 4. Sistema de Busca Funcional
     // 3. Sistema de Busca Funcional
@@ -592,10 +680,122 @@ function closeCommentsModal(event) {
     }
 }
 
-function openCommentsForPost(postId) {
-    currentCommentPostId = postId;
-    const post = postsData.find(p => p.id === postId);
+function buildCommentTree(comments) {
+    const map = new Map();
+    const roots = [];
+
+    comments.forEach(comment => {
+        comment.replies = [];
+        map.set(comment.id, comment);
+    });
+
+    comments.forEach(comment => {
+        if (comment.parent_comment_id) {
+            const parent = map.get(comment.parent_comment_id);
+            if (parent) {
+                parent.replies.push(comment);
+                return;
+            }
+        }
+        roots.push(comment);
+    });
+
+    return roots;
+}
+
+function renderComments(postId) {
     const modalCommentsList = document.getElementById('modal-comments-list');
+    const commentInput = document.getElementById('modal-comment-input');
+    const commentBtn = document.getElementById('modal-post-comment-btn');
+
+    if (!modalCommentsList || !commentInput || !commentBtn) return;
+
+    const comments = commentsCache.get(postId) || [];
+
+    function createCommentNode(comment, level = 0) {
+        const wrapper = document.createElement('div');
+        wrapper.className = 'modal-comment';
+        wrapper.style.marginLeft = `${level * 18}px`;
+
+        const userIsOwner = SESSION.username && SESSION.username === `@${comment.username}`;
+
+        wrapper.innerHTML = `
+            <img src="${comment.avatar_url || 'https://i.pravatar.cc/150?u=' + comment.username}" alt="${comment.username}" class="comment-avatar">
+            <div class="comment-content">
+                <p class="comment-text"><strong>${comment.username}</strong> ${comment.comment_text}</p>
+                <div class="comment-actions-buttons" style="margin-top:4px; display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
+                    <span class="comment-time" style="font-size:0.8rem;color:#a8b0c2;">${new Date(comment.created_at).toLocaleString('pt-BR')}</span>
+                    <button class="link-btn comment-reply" data-comment-id="${comment.id}">Responder</button>
+                    ${userIsOwner ? `<button class="link-btn comment-edit" data-comment-id="${comment.id}">Editar</button><button class="link-btn comment-delete" data-comment-id="${comment.id}">Excluir</button>` : ''}
+                </div>
+            </div>
+        `;
+
+        const replyBtn = wrapper.querySelector('.comment-reply');
+        if (replyBtn) {
+            replyBtn.addEventListener('click', () => {
+                currentReplyToCommentId = comment.id;
+                commentInput.focus();
+                commentInput.placeholder = `Responder @${comment.username}...`;
+            });
+        }
+
+        const editBtn = wrapper.querySelector('.comment-edit');
+        if (editBtn) {
+            editBtn.addEventListener('click', () => {
+                currentEditingCommentId = comment.id;
+                currentReplyToCommentId = null;
+                commentInput.value = comment.comment_text;
+                commentInput.focus();
+                commentInput.placeholder = 'Editando comentário...';
+                commentBtn.textContent = 'Salvar';
+            });
+        }
+
+        const deleteBtn = wrapper.querySelector('.comment-delete');
+        if (deleteBtn) {
+            deleteBtn.addEventListener('click', async () => {
+                if (!confirm('Deseja excluir este comentário?')) return;
+                const result = await deleteComment(postId, comment.id);
+                if (result.success) {
+                    commentsCache.set(postId, commentsCache.get(postId).filter(c => c.id !== comment.id && c.parent_comment_id !== comment.id));
+                    renderComments(postId);
+                } else {
+                    alert(result.message || 'Não foi possível excluir comentário.');
+                }
+            });
+        }
+
+        return wrapper;
+    }
+
+    modalCommentsList.innerHTML = '';
+    const tree = buildCommentTree(comments);
+
+    function appendList(items, level = 0) {
+        items.forEach(comment => {
+            modalCommentsList.appendChild(createCommentNode(comment, level));
+            if (comment.replies && comment.replies.length) {
+                appendList(comment.replies, level + 1);
+            }
+        });
+    }
+
+    appendList(tree);
+
+    commentBtn.textContent = currentEditingCommentId ? 'Salvar' : 'Publicar';
+    commentInput.value = '';
+    commentInput.placeholder = 'Adicionar um comentário...';
+    currentReplyToCommentId = null;
+    currentEditingCommentId = null;
+}
+
+async function openCommentsForPost(postId) {
+    currentCommentPostId = postId;
+    currentReplyToCommentId = null;
+    currentEditingCommentId = null;
+
+    const post = postsData.find(p => p.id === postId);
     const commentAvatar = document.getElementById('comment-modal-avatar');
     const modalTitle = document.querySelector('#comments-modal .modal-header h2');
 
@@ -606,21 +806,13 @@ function openCommentsForPost(postId) {
         modalTitle.textContent = `Comentários - ${post ? post.author : ''}`;
     }
 
-    if (modalCommentsList) {
-        modalCommentsList.innerHTML = '';
-        (post?.comments || []).forEach(c => {
-            const commentHTML = `
-                <div class="modal-comment">
-                    <img src="https://i.pravatar.cc/150?u=${c.user}" alt="${c.user}" class="comment-avatar">
-                    <div class="comment-content">
-                        <p class="comment-text"><strong>@${c.user}</strong> ${c.text}</p>
-                        <p class="comment-time">${c.time}</p>
-                    </div>
-                </div>
-            `;
-            modalCommentsList.insertAdjacentHTML('beforeend', commentHTML);
-        });
+    let commentResponse = await getComments(postId, 100);
+    if (!commentResponse.success) {
+        commentResponse = { data: [] };
     }
+
+    commentsCache.set(postId, commentResponse.data || []);
+    renderComments(postId);
 
     toggleCommentsModal(true);
 }
@@ -652,10 +844,11 @@ async function openShareModal(post) {
     overlay.addEventListener('click', (e) => { if (e.target === overlay) overlay.remove(); });
 
     const listContainer = document.getElementById('share-following-list');
-    const followingRes = await getFollowing(SESSION.userId);
+    const ownerId = post.user_id || SESSION.userId;
+    const followerRes = await getFollowers(ownerId);
 
-    if (!followingRes.success || !Array.isArray(followingRes.data) || followingRes.data.length === 0) {
-        listContainer.innerHTML = '<p style="color:#ccc;">Você não segue ninguém ainda para compartilhar.</p>';
+    if (!followerRes.success || !Array.isArray(followerRes.data) || followerRes.data.length === 0) {
+        listContainer.innerHTML = '<p style="color:#ccc;">Este usuário não possui seguidores para compartilhar o post (ou usuário não tem seguidores).</p>';
         return;
     }
 
@@ -674,7 +867,11 @@ async function openShareModal(post) {
             return;
         }
 
-        // Simulação de envio de compartilhamento (pode integrar endpoint real se necessário)
+        // Simulação de envio de compartilhamento
+        post.shares = (post.shares || 0) + 1;
+        persistPosts();
+        renderFeed();
+
         alert(`Post compartilhado com ${checked.length} usuário(s)!`);
         overlay.remove();
     });
@@ -686,48 +883,57 @@ async function postModalComment() {
     if (!modalInput || !postBtn || !currentCommentPostId) return;
 
     const commentText = modalInput.value.trim();
-    if (!commentText) return;
+    if (!commentText) {
+        return;
+    }
 
-    const post = postsData.find(p => p.id === currentCommentPostId);
-    if (!post) return;
+    let response;
 
-    const newComment = {
-        user: currentUser.username.replace('@', ''),
-        text: commentText,
-        time: 'Agora'
-    };
-
-    post.comments = post.comments || [];
-    post.comments.push(newComment);
-
-    try {
-        if (typeof addComment === 'function') {
-            await addComment(currentCommentPostId, commentText);
+    if (currentEditingCommentId) {
+        response = await editComment(currentCommentPostId, currentEditingCommentId, commentText);
+        if (response.success) {
+            const comments = commentsCache.get(currentCommentPostId) || [];
+            const comment = comments.find(c => c.id === currentEditingCommentId);
+            if (comment) {
+                comment.comment_text = commentText;
+                comment.updated_at = new Date().toISOString();
+            }
+        } else {
+            alert(response.message || 'Não foi possível editar o comentário.');
+            return;
         }
-    } catch (error) {
-        console.error('Erro ao salvar comentário no backend:', error);
+    } else {
+        response = await addComment(currentCommentPostId, commentText, currentReplyToCommentId);
+        if (response.success) {
+            const newComment = {
+                id: response.commentId || Date.now(),
+                post_id: currentCommentPostId,
+                user_id: SESSION.userId,
+                username: SESSION.username.replace('@', ''),
+                avatar_url: SESSION.avatarUrl,
+                comment_text: commentText,
+                parent_comment_id: currentReplyToCommentId || null,
+                created_at: new Date().toISOString(),
+                updated_at: new Date().toISOString(),
+                replies: []
+            };
+            const comments = commentsCache.get(currentCommentPostId) || [];
+            comments.push(newComment);
+            commentsCache.set(currentCommentPostId, comments);
+        } else {
+            alert(response.message || 'Não foi possível enviar comentário.');
+            return;
+        }
     }
 
-    const modalCommentsList = document.getElementById('modal-comments-list');
-    if (modalCommentsList) {
-        const commentHTML = `
-            <div class="modal-comment">
-                <img src="${currentUser.avatarUrl}" alt="${currentUser.username}" class="comment-avatar">
-                <div class="comment-content">
-                    <p class="comment-text"><strong>${currentUser.username}</strong> ${commentText}</p>
-                    <p class="comment-time">Agora</p>
-                </div>
-            </div>
-        `;
-        modalCommentsList.insertAdjacentHTML('beforeend', commentHTML);
-    }
-
-    // Atualiza contadores no feed
+    renderComments(currentCommentPostId);
     renderFeed();
 
     modalInput.value = '';
-    postBtn.classList.remove('active');
-    toggleCommentsModal(false);
+    modalInput.placeholder = 'Adicionar um comentário...';
+    postBtn.textContent = 'Publicar';
+    currentEditingCommentId = null;
+    currentReplyToCommentId = null;
 }
 
 const modalPostCommentBtn = document.getElementById('modal-post-comment-btn');

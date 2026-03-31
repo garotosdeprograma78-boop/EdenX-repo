@@ -2273,6 +2273,30 @@ body.light-theme .username {
     overflow: hidden;
     border: 1px solid rgba(255, 255, 255, 0.12);
     margin: auto 100px;
+    position: relative;
+}
+
+.post-delete-btn {
+    position: absolute;
+    top: 10px;
+    left: 10px;
+    z-index: 10;
+    background: rgba(0, 0, 0, 0.45);
+    border: 1px solid rgba(255, 255, 255, 0.25);
+    color: #fff;
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 5px 12px rgba(0, 0, 0, 0.45);
+    cursor: pointer;
+}
+
+.post-delete-btn:hover {
+    background: rgba(255, 0, 0, 0.8);
+    border-color: rgba(255, 255, 255, 0.9);
 }
 
 .post-card-header {
@@ -2288,7 +2312,7 @@ body.light-theme .username {
 }
 
 .post-more-btn {
-    background: transparent;
+    background: red;
     border: none;
     color: rgba(255, 255, 255, 0.55);
     font-size: 1.2rem;
