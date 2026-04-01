@@ -1,8 +1,46 @@
 const sqlite3 = require('sqlite3').verbose();
 const fs = require('fs');
 const path = require('path');
+const mysql = require('mysql2/promise');
+const dotenv = require('dotenv');
+
+dotenv.config();
+
+const {
+  DB_HOST,
+  DB_PORT,
+  DB_USER,
+  DB_PASSWORD,
+  DB_NAME
+} = process.env;
 
 async function initializeDatabase() {
+  if (DB_HOST && DB_NAME) {
+    // Criar DB MySQL usando schema.sql
+    try {
+      const schemaPath = path.join(__dirname, 'schema.sql');
+      const schemaSql = fs.readFileSync(schemaPath, 'utf8');
+
+      const connection = await mysql.createConnection({
+        host: DB_HOST,
+        port: DB_PORT ? Number(DB_PORT) : 3306,
+        user: DB_USER,
+        password: DB_PASSWORD,
+        multipleStatements: true
+      });
+
+      await connection.query(schemaSql);
+      await connection.end();
+
+      console.log('✓ Banco de dados MySQL inicializado com sucesso (schema.sql)');
+      return;
+    } catch (err) {
+      console.error('✗ Erro ao inicializar MySQL:', err.message || err);
+      throw err;
+    }
+  }
+
+  // fallback SQLite
   const dbPath = path.join(__dirname, 'edenx.db');
 
   return new Promise((resolve, reject) => {

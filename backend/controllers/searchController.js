@@ -4,20 +4,25 @@ exports.searchUsers = async (req, res) => {
   try {
     const { query } = req.query;
 
-    if (!query || query.length < 2) {
+    let searchQuery;
+    let params;
+
+    if (!query || query.trim().length === 0) {
+      // Retorna todos os usuários (até 100) quando não passa query
+      searchQuery = `SELECT id, username, avatar_url, bio FROM users ORDER BY created_at DESC LIMIT 100`;
+      params = [];
+    } else if (query.length < 2) {
       return res.status(400).json({ message: 'Digite pelo menos 2 caracteres' });
+    } else {
+      searchQuery = `
+        SELECT id, username, avatar_url, bio FROM users
+        WHERE username LIKE ? OR bio LIKE ?
+        LIMIT 100
+      `;
+      params = [`%${query}%`, `%${query}%`];
     }
 
-    const searchQuery = `
-      SELECT id, username, avatar_url, bio FROM users
-      WHERE username LIKE ? OR bio LIKE ?
-      LIMIT 20
-    `;
-
-    const { rows } = await pool.query(searchQuery, [
-      `%${query}%`,
-      `%${query}%`
-    ]);
+    const { rows } = await pool.query(searchQuery, params);
 
     res.json(rows);
   } catch (error) {

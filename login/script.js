@@ -112,15 +112,8 @@ document.addEventListener('submit', async (e) => {
                 localStorage.setItem('edenx_token', data.token);
                 localStorage.setItem('edenx_userId', data.user.id);
                 localStorage.setItem('edenx_username', data.user.username);
-                localStorage.setItem('edenx_displayName', data.user.display_name || data.user.username);
-                localStorage.setItem('edenx_email', data.user.email);
-                localStorage.setItem('edenx_avatarUrl', normalizeAvatarUrl(data.user.avatar_url) || '');
-                localStorage.setItem('edenx_bio', data.user.bio);
-                localStorage.setItem('edenx_location', data.user.location || '');
-                localStorage.setItem('edenx_link', data.user.link || '');
-                localStorage.setItem('edenx_anniversary', data.user.anniversary || '');
-                localStorage.setItem('edenx_followers', data.user.followers);
-                localStorage.setItem('edenx_following', data.user.following);
+                localStorage.setItem('edenx_displayName', data.user.display_name || data.user.username || '');
+                // não armazenar dados sensíveis de profile no localstorage além do mínimo necessário para sessão
                 alert('Login bem-sucedido!');
                 window.location.href = '../index.html'; // Redirecionar para a app principal
             } else {
@@ -162,19 +155,11 @@ document.addEventListener('submit', async (e) => {
             const data = await response.json();
 
             if (response.ok) {
-                // Usar api-client para salvar dados corretos
+                // Usar api-client para gravar apenas sessão mínima (token + userId)
                 localStorage.setItem('edenx_token', data.token);
                 localStorage.setItem('edenx_userId', data.user.id);
                 localStorage.setItem('edenx_username', data.user.username);
-                localStorage.setItem('edenx_displayName', data.user.display_name || data.user.username);
-                localStorage.setItem('edenx_email', data.user.email);
-                localStorage.setItem('edenx_avatarUrl', normalizeAvatarUrl(data.user.avatar_url) || '');
-                localStorage.setItem('edenx_bio', data.user.bio);
-                localStorage.setItem('edenx_location', data.user.location || '');
-                localStorage.setItem('edenx_link', data.user.link || '');
-                localStorage.setItem('edenx_anniversary', data.user.anniversary || '');
-                localStorage.setItem('edenx_followers', data.user.followers || 0);
-                localStorage.setItem('edenx_following', data.user.following || 0);
+                localStorage.setItem('edenx_displayName', data.user.display_name || data.user.username || '');
                 alert('Conta criada com sucesso!');
                 window.location.href = '../index.html'; // Redirecionar para a app principal
             } else {

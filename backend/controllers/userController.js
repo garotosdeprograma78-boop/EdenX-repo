@@ -126,6 +126,19 @@ exports.getProfile = async (req, res) => {
   }
 };
 
+exports.listUsers = async (req, res) => {
+  try {
+    const limit = parseInt(req.query.limit, 10) || 100;
+    const offset = parseInt(req.query.offset, 10) || 0;
+
+    const users = await User.findAll(limit, offset);
+    res.json(users);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Erro ao listar usuários' });
+  }
+};
+
 exports.updateProfile = async (req, res) => {
   try {
     const userId = req.user.id;

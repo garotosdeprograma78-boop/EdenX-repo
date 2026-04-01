@@ -99,9 +99,14 @@ async function register(username, email, password, passwordConfirm) {
 
   if (result.success) {
     SESSION.token = result.data.token;
-    SESSION.userId = result.data.userId;
+    SESSION.userId = result.data.user.id;
+    SESSION.isAuthenticated = true;
+
+    // Armazenar somente token + userId para sessão. Dados de perfil devem vir do backend.
     localStorage.setItem('edenx_token', result.data.token);
-    localStorage.setItem('edenx_userId', result.data.userId);
+    localStorage.setItem('edenx_userId', result.data.user.id);
+    localStorage.setItem('edenx_username', result.data.user.username);
+    localStorage.setItem('edenx_displayName', result.data.user.display_name || result.data.user.username || '');
   }
 
   return result;
@@ -132,14 +137,9 @@ async function login(email, password) {
     localStorage.setItem('edenx_token', result.data.token);
     localStorage.setItem('edenx_userId', result.data.user.id);
     localStorage.setItem('edenx_username', result.data.user.username);
-    localStorage.setItem('edenx_displayName', result.data.user.display_name || '');
-    localStorage.setItem('edenx_avatarUrl', normalizedAvatar || '');
-    localStorage.setItem('edenx_bio', result.data.user.bio || '');
-    localStorage.setItem('edenx_location', result.data.user.location || '');
-    localStorage.setItem('edenx_link', result.data.user.link || '');
-    localStorage.setItem('edenx_anniversary', result.data.user.anniversary || '');
-    localStorage.setItem('edenx_followers', result.data.user.followers || 0);
-    localStorage.setItem('edenx_following', result.data.user.following || 0);
+    localStorage.setItem('edenx_displayName', result.data.user.display_name || result.data.user.username || '');
+    // Não armazenar outros campos de perfil permanentemente em localStorage.
+    // Aplicativo deve sempre consultar /users/profile para dados atuais.
   }
 
   return result;

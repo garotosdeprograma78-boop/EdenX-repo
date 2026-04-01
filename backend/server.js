@@ -96,6 +96,17 @@ app.get('/api/health', (req, res) => {
 
 // Iniciar servidor
 const PORT = process.env.PORT || 3001;
+
+server.on('error', (err) => {
+  if (err.code === 'EADDRINUSE') {
+    console.error(`\n❌ Porta ${PORT} já está em uso. ` +
+      'Pare o processo que a usa ou altere a porta em .env para evitar o conflito.');
+    process.exit(1);
+  }
+  console.error('Erro no servidor:', err);
+  process.exit(1);
+});
+
 server.listen(PORT, () => {
   console.log(`\n🚀 Servidor EdenX rodando em http://localhost:${PORT}`);
   console.log(`📱 WebSocket ativo para mensagens em tempo real`);
