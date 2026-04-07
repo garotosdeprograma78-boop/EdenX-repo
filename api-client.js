@@ -70,17 +70,25 @@ async function apiRequest(endpoint, method = 'GET', body = null, isFormData = fa
     delete options.headers['Content-Type'];
   }
 
+  console.log(`🌐 apiRequest: ${method} ${API_BASE_URL}${endpoint}`);
+  console.log(`   Headers:`, options.headers);
+
   try {
     const response = await fetch(`${API_BASE_URL}${endpoint}`, options);
     
+    console.log(`   Status: ${response.status}`);
+
     if (!response.ok) {
-      throw new Error(`HTTP ${response.status}`);
+      const errorData = await response.text();
+      console.error(`   Erro HTTP ${response.status}:`, errorData);
+      throw new Error(`HTTP ${response.status}: ${errorData.substring(0, 100)}`);
     }
 
     const data = await response.json();
+    console.log(`   ✓ Sucesso`);
     return { success: true, data };
   } catch (error) {
-    console.error('Erro na requisição:', error);
+    console.error('❌ Erro na requisição:', error.message);
     return { success: false, error: error.message };
   }
 }
@@ -316,7 +324,18 @@ async function sendMessage(recipientId, message, mediaUrl = null, mediaType = nu
   if (message) body.message = message;
   if (mediaUrl) body.media_url = mediaUrl;
   if (mediaType) body.media_type = mediaType;
-  return apiRequest('/messages', 'POST', body);
+  
+  console.log('📨 sendMessage - Enviando requisição para /api/messages');
+  console.log('   Payload:', JSON.stringify(body));
+  console.log('   Token:', SESSION.token ? SESSION.token.substring(0, 20) + '...' : 'NONE');
+  
+  const result = await apiRequest('/messages', 'POST', body);
+  
+  console.log('📨 sendMessage - Resposta recebida:');
+  console.log('   Sucesso:', result.success);
+  console.log('   Dados:', result.data);
+  
+  return result;
 }
 
 async function getUnreadCount() {
@@ -511,12 +530,17 @@ function initWebSocket() {
   }
 }
 
-function sendMessageViaSocket(recipientId, message) {
+function sendMessageViaSocket(recipientId, message, mediaUrl = null, mediaType = null, messageId = null) {
   if (socket) {
     socket.emit('send-message', {
       senderId: SESSION.userId,
       recipientId,
-      message
+      message,
+      mediaUrl,
+      mediaType,
+      timestamp: new Date(),
+      persisted: true,
+      messageId
     });
   }
 }

@@ -39,35 +39,39 @@ class Message {
 
   static async getUserConversations(userId, limit = 20) {
     const query = `
-      SELECT DISTINCT
+      SELECT 
         CASE 
           WHEN m.sender_id = ? THEN m.recipient_id 
           ELSE m.sender_id 
         END as other_user_id,
         u.username, u.avatar_url,
-        (SELECT message_text FROM messages 
-         WHERE (sender_id = ? AND recipient_id = u.id) 
-           OR (sender_id = u.id AND recipient_id = ?)
-         ORDER BY created_at DESC LIMIT 1) as last_message,
-        (SELECT created_at FROM messages 
-         WHERE (sender_id = ? AND recipient_id = u.id) 
-           OR (sender_id = u.id AND recipient_id = ?)
-         ORDER BY created_at DESC LIMIT 1) as last_message_time
+        m.message_text as last_message,
+        m.created_at as last_message_time
       FROM messages m
       JOIN users u ON (
         (m.sender_id = ? AND m.recipient_id = u.id) OR 
         (m.recipient_id = ? AND m.sender_id = u.id)
       )
       WHERE m.sender_id = ? OR m.recipient_id = ?
-      GROUP BY other_user_id
-      ORDER BY last_message_time DESC
+      ORDER BY m.created_at DESC
       LIMIT ?
     `;
     try {
       const result = await pool.query(query, [
-        userId, userId, userId, userId, userId, userId, userId, userId, userId, userId, limit
+        userId, userId, userId, userId, userId, limit
       ]);
-      return result.rows || [];
+      const rows = result.rows || [];
+
+      const seen = new Set();
+      const conversations = [];
+      for (const row of rows) {
+        if (!seen.has(row.other_user_id)) {
+          seen.add(row.other_user_id);
+          conversations.push(row);
+        }
+      }
+
+      return conversations;
     } catch (error) {
       console.error('Erro ao buscar conversas do usuário:', error);
       return [];

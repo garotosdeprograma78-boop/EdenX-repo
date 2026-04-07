@@ -143,7 +143,10 @@ async function initializeDatabase() {
           id INTEGER PRIMARY KEY AUTOINCREMENT,
           sender_id INTEGER NOT NULL,
           recipient_id INTEGER NOT NULL,
-          message_text TEXT NOT NULL,
+          message_text TEXT,
+          media_url TEXT,
+          media_type TEXT,
+          is_read INTEGER DEFAULT 0,
           created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
           FOREIGN KEY (sender_id) REFERENCES users(id) ON DELETE CASCADE,
           FOREIGN KEY (recipient_id) REFERENCES users(id) ON DELETE CASCADE

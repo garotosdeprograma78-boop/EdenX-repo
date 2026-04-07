@@ -13,7 +13,15 @@ exports.sendMessage = async (req, res) => {
 
     res.status(201).json({
       message: 'Mensagem enviada',
-      messageId
+      data: {
+        id: messageId,
+        sender_id: senderId,
+        recipient_id: recipientId,
+        message_text: message || null,
+        media_url: media_url || null,
+        media_type: media_type || null,
+        created_at: new Date()
+      }
     });
   } catch (error) {
     console.error(error);

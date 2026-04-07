@@ -845,6 +845,47 @@ body { background-color: var(--bg-dark); color: white; height: 100vh; overflow: 
     box-shadow: 0 0 8px var(--cyan-primary); /* Efeito Neon */
 }
 
+.btn-message {
+    padding: 6px 12px !important;
+    background-color: var(--cyan-primary) !important;
+    color: var(--dark-bg) !important;
+    border: none !important;
+    border-radius: 20px !important;
+    cursor: pointer !important;
+    font-weight: 500 !important;
+    font-size: 0.85rem !important;
+    white-space: nowrap !important;
+    transition: all 0.3s ease !important;
+    display: flex !important;
+    align-items: center !important;
+    gap: 4px !important;
+}
+
+.btn-message:hover {
+    background-color: var(--cyan-secondary, #00d4ff) !important;
+    transform: translateY(-2px) !important;
+    box-shadow: 0 4px 12px rgba(0, 200, 255, 0.4) !important;
+}
+
+.btn-message:active {
+    transform: translateY(0px) !important;
+}
+
+.following-user-item {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    padding: 10px 20px !important;
+    gap: 10px !important;
+}
+
+.following-user-content {
+    display: flex !important;
+    align-items: center !important;
+    flex: 1 !important;
+    cursor: pointer !important;
+}
+
 /* ====================================================== */
 /* JANELA DE CHAT ATIVO (A CONVERSA) */
 /* ====================================================== */

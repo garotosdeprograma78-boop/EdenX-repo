@@ -10,6 +10,7 @@ dotenv.config();
 
 // Importar banco de dados (testa conexão)
 const db = require('./config/database');
+const Message = require('./models/Message');
 
 // Inicializar Express
 const app = express();
@@ -41,14 +42,36 @@ io.on('connection', (socket) => {
   });
 
   // Receber mensagem
-  socket.on('send-message', (data) => {
+  socket.on('send-message', async (data) => {
+    let messageId = data.messageId || null;
+    const payload = {
+      senderId: data.senderId,
+      recipientId: data.recipientId,
+      message: data.message || null,
+      mediaUrl: data.mediaUrl || null,
+      mediaType: data.mediaType || null,
+      timestamp: data.timestamp || new Date(),
+      messageId
+    };
+
+    try {
+      if (!data.persisted && data.senderId && data.recipientId && (data.message || data.mediaUrl)) {
+        messageId = await Message.create(
+          data.senderId,
+          data.recipientId,
+          data.message || null,
+          data.mediaUrl || null,
+          data.mediaType || null
+        );
+        payload.messageId = messageId;
+      }
+    } catch (error) {
+      console.error('Erro ao persistir mensagem via socket:', error);
+    }
+
     const recipientSocket = activeUsers[data.recipientId];
     if (recipientSocket) {
-      io.to(recipientSocket).emit('receive-message', {
-        senderId: data.senderId,
-        message: data.message,
-        timestamp: new Date()
-      });
+      io.to(recipientSocket).emit('receive-message', payload);
     }
   });
 

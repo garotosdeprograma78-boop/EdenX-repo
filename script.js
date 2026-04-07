@@ -16,6 +16,11 @@ document.addEventListener('DOMContentLoaded', async () => {
             if (item.dataset.target === 'view-profile') {
                 if (typeof loadUserProfile === 'function') loadUserProfile();
             }
+
+            // Recarregar usuários seguidos quando clicar em Mensagens
+            if (item.dataset.target === 'view-messages') {
+                if (typeof loadFollowingUsers === 'function') loadFollowingUsers();
+            }
         });
     });
 
@@ -1079,7 +1084,7 @@ function closeChat() {
     document.getElementById('active-chat-view').style.display = 'none';
 }
 
-function sendMessage() {
+function sendMessageLegacyDemo() {
     const input = document.getElementById('chat-input');
     const text = input.value.trim();
     

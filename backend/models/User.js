@@ -99,15 +99,15 @@ class User {
     }
   }
 
-  static async getFollowing(userId, limit = 50) {
+  static async getFollowing(userId) {
     const query = `
       SELECT u.id, u.username, u.avatar_url 
       FROM users u
       JOIN followers f ON u.id = f.user_id
-      WHERE f.follower_id = ? LIMIT ?
+      WHERE f.follower_id = ?
     `;
     try {
-      const result = await pool.query(query, [userId, limit]);
+      const result = await pool.query(query, [userId]);
       return result.rows || [];
     } catch (error) {
       console.error('Erro ao buscar seguindo:', error);

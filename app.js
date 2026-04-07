@@ -98,6 +98,9 @@ document.addEventListener('DOMContentLoaded', async () => {
   // Carregar conversa de chat
   await loadChatList();
 
+  // Carregar usuários seguidos
+  await loadFollowingUsers();
+
   // Carregar perfil do usuário atual
   if (SESSION.isAuthenticated) {
     await loadUserProfile();
@@ -340,16 +343,45 @@ function setupSearchListener() {
           const userEl = document.createElement('div');
           userEl.className = 'search-item dark-box';
           userEl.style.cssText = 'padding: 10px; display:flex; align-items:center; gap:10px; cursor: pointer;';
-          userEl.innerHTML = `
-            <img src="${user.avatar_url || 'https://i.pravatar.cc/100?u=' + user.username}" style="width:50px; border-radius:50%">
-            <div style="flex: 1;">
-              <p><strong>${user.username}</strong></p>
-              <p style="font-size:0.8rem; color:gray">${user.bio || 'Sem bio'}</p>
-            </div>
-            <button class="btn btn-outline" style="padding: 5px 15px;" onclick="followUserUI(${user.id})">
-              Seguir
-            </button>
+
+          const avatarImg = document.createElement('img');
+          avatarImg.src = user.avatar_url || 'https://i.pravatar.cc/100?u=' + user.username;
+          avatarImg.style.cssText = 'width:50px; border-radius:50%;';
+
+          const infoWrapper = document.createElement('div');
+          infoWrapper.style.flex = '1';
+          infoWrapper.innerHTML = `
+            <p><strong>${user.username}</strong></p>
+            <p style="font-size:0.8rem; color:gray">${user.bio || 'Sem bio'}</p>
           `;
+
+          const actionsWrapper = document.createElement('div');
+          actionsWrapper.style.cssText = 'display:flex; gap: 8px;';
+
+          const followBtn = document.createElement('button');
+          followBtn.className = 'btn btn-outline';
+          followBtn.style.cssText = 'padding: 5px 15px;';
+          followBtn.textContent = 'Seguir';
+          followBtn.addEventListener('click', (event) => {
+            event.stopPropagation();
+            followUserUI(user.id);
+          });
+
+          const messageBtn = document.createElement('button');
+          messageBtn.className = 'btn btn-primary';
+          messageBtn.style.cssText = 'padding: 5px 15px;';
+          messageBtn.textContent = 'Mensagem';
+          messageBtn.addEventListener('click', (event) => {
+            event.stopPropagation();
+            const avatar = user.avatar_url || 'https://i.pravatar.cc/100?u=' + user.username;
+            openChat(user.id, user.username, avatar);
+          });
+
+          actionsWrapper.appendChild(followBtn);
+          actionsWrapper.appendChild(messageBtn);
+          userEl.appendChild(avatarImg);
+          userEl.appendChild(infoWrapper);
+          userEl.appendChild(actionsWrapper);
 
           userEl.addEventListener('click', () => {
             // Abrir perfil do usuário
@@ -413,6 +445,40 @@ async function loadChatList() {
   }
 }
 
+async function loadFollowingUsers() {
+  try {
+    const result = await getFollowing(SESSION.userId);
+
+    const followingList = document.getElementById('following-users');
+    if (!followingList || !result.success) return;
+
+    followingList.innerHTML = '';
+
+    if (result.data && result.data.length > 0) {
+      result.data.forEach(user => {
+        const userItem = document.createElement('div');
+        userItem.className = 'chat-item following-user-item';
+        userItem.innerHTML = `
+          <div class="following-user-content" onclick="openChat(${user.id}, '${user.username}', '${user.avatar_url || 'https://i.pravatar.cc/150?u=' + user.username}')">
+            <img src="${user.avatar_url || 'https://i.pravatar.cc/150?u=' + user.username}" class="chat-avatar">
+            <div class="chat-info">
+              <span class="user-name">${user.username}</span>
+            </div>
+          </div>
+          <button class="btn-message" onclick="event.stopPropagation(); openChat(${user.id}, '${user.username}', '${user.avatar_url || 'https://i.pravatar.cc/150?u=' + user.username}')">
+            <i class="fa-regular fa-paper-plane"></i>Mensagem
+          </button>
+        `;
+        followingList.appendChild(userItem);
+      });
+    } else {
+      followingList.innerHTML = '<p style="padding: 20px; text-align: center; color: var(--text-gray);">Você não segue ninguém ainda</p>';
+    }
+  } catch (error) {
+    console.error('Erro ao carregar usuários seguidos:', error);
+  }
+}
+
 async function openChat(userId, username, avatarUrl) {
   document.getElementById('chat-list-container').style.display = 'none';
   const chatWindow = document.getElementById('active-chat-view');
@@ -470,26 +536,47 @@ async function handleSendMessage() {
   const mediaInput = document.getElementById('chat-media-input');
   const mediaFile = mediaInput ? mediaInput.files[0] : null;
 
-  if (!window.activeChatUserId || (!text && !mediaFile)) return;
+  console.log('📝 handleSendMessage chamado');
+  console.log(`   - Texto: "${text}"`);
+  console.log(`   - Chat ativo com user: ${window.activeChatUserId}`);
+  console.log(`   - Arquivo: ${mediaFile ? mediaFile.name : 'nenhum'}`);
+  console.log(`   - Autenticado: ${SESSION.isAuthenticated}`);
+
+  if (!window.activeChatUserId || (!text && !mediaFile)) {
+    console.log('❌ Validação falhou - faltam dados obrigatórios');
+    return;
+  }
 
   let mediaUrl = null;
   let mediaType = null;
 
   if (mediaFile) {
+    console.log('📤 Fazendo upload de mídia...');
     const uploadRes = await uploadMessageMedia(mediaFile);
     if (uploadRes.success) {
       mediaUrl = uploadRes.data.mediaUrl;
       mediaType = uploadRes.data.mediaType;
+      console.log(`✓ Mídia salva em: ${mediaUrl}`);
     } else {
+      console.log('❌ Erro no upload: ' + uploadRes.error);
       alert('Falha ao enviar mídia: ' + (uploadRes.error || 'Erro desconhecido'));
       return;
     }
   }
 
   if (SESSION.isAuthenticated) {
+    console.log('🔐 Enviando mensagem via API...');
     const result = await sendMessage(window.activeChatUserId, text, mediaUrl, mediaType);
 
+    console.log('📊 Resposta da API:');
+    console.log(result);
+
     if (result.success) {
+      console.log('✓ Mensagem salva no banco com sucesso!');
+      console.log(`   - ID da mensagem: ${result.data?.id || 'N/A'}`);
+      
+      sendMessageViaSocket(window.activeChatUserId, text, mediaUrl, mediaType, result.data?.id || null);
+
       const messagesArea = document.getElementById('chat-messages-area');
       const msgEl = document.createElement('div');
       msgEl.className = 'message-bubble sent';
@@ -512,7 +599,15 @@ async function handleSendMessage() {
 
       messagesArea.appendChild(msgEl);
       messagesArea.scrollTop = messagesArea.scrollHeight;
+      await loadChatList();
+    } else {
+      console.error('❌ Erro ao enviar mensagem:', result);
+      alert('Erro ao enviar mensagem: ' + (result.message || 'Erro desconhecido'));
     }
+  } else {
+    console.error('❌ Usuário não autenticado');
+    alert('Você precisa estar logado para enviar mensagens');
+    return;
   }
 
   input.value = '';
@@ -527,15 +622,31 @@ async function handleSendMessage() {
 
 function setupWebSocketListeners() {
   window.addEventListener('new-message', (e) => {
-    const { senderId, message, timestamp } = e.detail;
-    console.log('Mensagem recebida (WebSocket):', message);
+    const { senderId, message, mediaUrl, mediaType, timestamp } = e.detail;
+    console.log('Mensagem recebida (WebSocket):', message || mediaUrl);
 
     // Atualizar chat se estiver aberto
     if (window.activeChatUserId === senderId) {
       const messagesArea = document.getElementById('chat-messages-area');
       const msgEl = document.createElement('div');
       msgEl.className = 'message-bubble received';
-      msgEl.textContent = message;
+
+      if (mediaUrl) {
+        const baseUrl = API_BASE_URL.replace(/\/api$/, '');
+        if (mediaType === 'video') {
+          msgEl.innerHTML = `<video controls style="max-width: 240px; max-height: 180px;"><source src="${baseUrl}${mediaUrl}" type="video/mp4" /></video>`;
+        } else {
+          msgEl.innerHTML = `<img src="${baseUrl}${mediaUrl}" alt="Mídia" style="max-width: 240px; max-height: 180px;">`;
+        }
+        if (message) {
+          const textEl = document.createElement('p');
+          textEl.textContent = message;
+          msgEl.appendChild(textEl);
+        }
+      } else {
+        msgEl.textContent = message;
+      }
+
       messagesArea.appendChild(msgEl);
       messagesArea.scrollTop = messagesArea.scrollHeight;
     }
