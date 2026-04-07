@@ -505,27 +505,19 @@ let socket = null;
 function initWebSocket() {
   if (SESSION.isAuthenticated && !socket) {
     socket = io(WS_URL);
-
     socket.emit('user-online', SESSION.userId);
 
     socket.on('receive-message', (data) => {
-      console.log('Mensagem recebida:', data);
-      // Dispatch custom event para o frontend usar
-      window.dispatchEvent(new CustomEvent('new-message', { detail: data }));
-    });
+        window.dispatchEvent(new CustomEvent('new-message', { detail: data }));
+        const notification = new Notification('Nova mensagem de ' + data.senderName, {
+            body: data.message,
+            icon: '/path/to/icon.png'
+        });
 
-    socket.on('post-created', (data) => {
-      console.log('Novo post:', data);
-      window.dispatchEvent(new CustomEvent('new-post', { detail: data }));
-    });
-
-    socket.on('story-created', (data) => {
-      console.log('Novo story:', data);
-      window.dispatchEvent(new CustomEvent('new-story', { detail: data }));
-    });
-
-    socket.on('disconnect', () => {
-      console.log('Desconectado do servidor');
+        notification.onclick = () => {
+            window.focus();
+            openChat(data.senderId, data.senderName, data.senderAvatar);
+        };
     });
   }
 }

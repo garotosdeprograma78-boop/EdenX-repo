@@ -44,16 +44,33 @@ class Message {
           WHEN m.sender_id = ? THEN m.recipient_id 
           ELSE m.sender_id 
         END as other_user_id,
+<<<<<<< HEAD
         u.username, u.avatar_url,
         m.message_text as last_message,
         m.created_at as last_message_time
+=======
+        u.id as user_id, u.username, u.avatar_url,
+        (SELECT message_text FROM messages 
+         WHERE (sender_id = ? AND recipient_id = u.id) 
+           OR (sender_id = u.id AND recipient_id = ?)
+         ORDER BY created_at DESC LIMIT 1) as last_message,
+        (SELECT created_at FROM messages 
+         WHERE (sender_id = ? AND recipient_id = u.id) 
+           OR (sender_id = u.id AND recipient_id = ?)
+         ORDER BY created_at DESC LIMIT 1) as last_message_time
+>>>>>>> 3aec31e56ffe2c4b1c2204f3b2812c660d4947a5
       FROM messages m
       JOIN users u ON (
         (m.sender_id = ? AND m.recipient_id = u.id) OR 
         (m.recipient_id = ? AND m.sender_id = u.id)
       )
       WHERE m.sender_id = ? OR m.recipient_id = ?
+<<<<<<< HEAD
       ORDER BY m.created_at DESC
+=======
+      GROUP BY other_user_id, user_id, u.username, u.avatar_url, last_message, last_message_time
+      ORDER BY last_message_time DESC
+>>>>>>> 3aec31e56ffe2c4b1c2204f3b2812c660d4947a5
       LIMIT ?
     `;
     try {

@@ -16,10 +16,15 @@ document.addEventListener('DOMContentLoaded', async () => {
             if (item.dataset.target === 'view-profile') {
                 if (typeof loadUserProfile === 'function') loadUserProfile();
             }
+<<<<<<< HEAD
 
             // Recarregar usuários seguidos quando clicar em Mensagens
             if (item.dataset.target === 'view-messages') {
                 if (typeof loadFollowingUsers === 'function') loadFollowingUsers();
+=======
+            if (item.dataset.target === 'view-messages') {
+                loadChatList();
+>>>>>>> 3aec31e56ffe2c4b1c2204f3b2812c660d4947a5
             }
         });
     });
