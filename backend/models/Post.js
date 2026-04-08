@@ -45,10 +45,10 @@ class Post {
       LEFT JOIN likes l ON p.id = l.post_id AND l.user_id = ?
       WHERE f.id IS NOT NULL OR p.user_id = ?
       ORDER BY p.created_at DESC
-      LIMIT ? OFFSET ?
+      LIMIT ${parseInt(limit)} OFFSET ${parseInt(offset)}
     `;
     try {
-      const result = await pool.query(query, [userId, userId, userId, limit, offset]);
+      const result = await pool.query(query, [userId, userId, userId]);
       return result.rows || [];
     } catch (error) {
       console.error('Erro ao buscar feed:', error);
@@ -65,10 +65,10 @@ class Post {
       JOIN users u ON p.user_id = u.id
       WHERE p.user_id = ?
       ORDER BY p.created_at DESC
-      LIMIT ? OFFSET ?
+      LIMIT ${parseInt(limit)} OFFSET ${parseInt(offset)}
     `;
     try {
-      const result = await pool.query(query, [userId, limit, offset]);
+      const result = await pool.query(query, [userId]);
       return result.rows || [];
     } catch (error) {
       console.error('Erro ao buscar posts do usuário:', error);

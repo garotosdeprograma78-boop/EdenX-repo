@@ -273,8 +273,8 @@ exports.removeFollower = async (req, res) => {
 exports.getUserPosts = async (req, res) => {
   try {
     const { userId } = req.params;
-    const limit = req.query.limit || 20;
-    const offset = req.query.offset || 0;
+    const limit = parseInt(req.query.limit) || 20;
+    const offset = parseInt(req.query.offset) || 0;
 
     const posts = await Post.getUserPosts(userId, limit, offset);
     res.json({ success: true, data: posts });

@@ -74,6 +74,28 @@ class LazyLoadManager {
 let reelsLazyLoader = null;
 
 // ====================================================
+// FUNÇÕES AUXILIARES
+// ====================================================
+
+function showView(viewId) {
+  // Remove classe 'active' de todos os nav-items e views
+  document.querySelectorAll('.nav-item').forEach(item => item.classList.remove('active'));
+  document.querySelectorAll('.view').forEach(view => view.classList.remove('active'));
+  
+  // Adiciona classe 'active' ao nav-item correspondente e à view
+  const navItem = document.querySelector(`[data-target="${viewId}"]`);
+  if (navItem) navItem.classList.add('active');
+  
+  const view = document.getElementById(viewId);
+  if (view) view.classList.add('active');
+  
+  // Carregar conteúdo específico da view
+  if (viewId === 'view-messages') {
+    if (typeof loadChatList === 'function') loadChatList();
+  }
+}
+
+// ====================================================
 // INITIALIZATION - CARREGA NA PÁGINA
 // ====================================================
 
@@ -749,6 +771,10 @@ async function renderProfileDetails(user, isSelf) {
     if (messageBtn) {
       messageBtn.style.display = 'inline-block';
       messageBtn.onclick = () => {
+        // Redirecionar para a seção de mensagens
+        showView('view-messages');
+        
+        // Abrir o chat com o usuário
         if (typeof openChat === 'function') {
           const avatar = normalizeAvatarUrl(user.avatar_url) || (SESSION.avatarUrl || 'https://i.pravatar.cc/150?u=anon');
           openChat(user.id, user.username ? '@' + user.username : 'Chat', avatar);

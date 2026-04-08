@@ -80,7 +80,7 @@ CREATE TABLE IF NOT EXISTS comments (
 -- Tabela de Stories
 CREATE TABLE IF NOT EXISTS stories (
   id INT PRIMARY KEY AUTO_INCREMENT,
-  user_id INT NOT NULL,
+  user_id INT,
   image_url VARCHAR(500) NOT NULL,
   story_type VARCHAR(50) DEFAULT 'image',
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,

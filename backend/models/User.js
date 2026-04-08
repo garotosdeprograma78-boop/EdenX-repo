@@ -38,9 +38,9 @@ class User {
   }
 
   static async findAll(limit = 100, offset = 0) {
-    const query = `SELECT id, username, display_name, email, avatar_url, bio, location, link, anniversary, followers, following FROM users ORDER BY created_at DESC LIMIT ? OFFSET ?`;
+    const query = `SELECT id, username, display_name, email, avatar_url, bio, location, link, anniversary, followers, following FROM users ORDER BY created_at DESC LIMIT ${parseInt(limit)} OFFSET ${parseInt(offset)}`;
     try {
-      const result = await pool.query(query, [limit, offset]);
+      const result = await pool.query(query, []);
       return result.rows || [];
     } catch (error) {
       console.error('Erro ao buscar todos os usuários:', error);

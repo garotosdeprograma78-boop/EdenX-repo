@@ -20,11 +20,15 @@ const upload = multer({ storage });
 
 exports.createStory = async (req, res) => {
   try {
-    const userId = req.user.id;
+    const userId = req.user ? req.user.id : req.body.userId || null;
     let imageUrl = req.body.image_url;
 
     if (req.file) {
       imageUrl = `/uploads/stories/${req.file.filename}`;
+    }
+
+    if (!imageUrl) {
+      return res.status(400).json({ message: 'Imagem é obrigatória' });
     }
 
     const storyId = await Story.create(userId, imageUrl, 'image');

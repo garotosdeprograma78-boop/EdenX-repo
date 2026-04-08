@@ -20,7 +20,7 @@ class Story {
       SELECT s.*, u.username, u.avatar_url,
         CASE WHEN s.expires_at > CURRENT_TIMESTAMP THEN 1 ELSE 0 END as is_active
       FROM stories s
-      JOIN users u ON s.user_id = u.id
+      LEFT JOIN users u ON s.user_id = u.id
       WHERE s.expires_at > CURRENT_TIMESTAMP
       ORDER BY s.created_at DESC
       LIMIT ?

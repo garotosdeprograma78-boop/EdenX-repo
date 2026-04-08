@@ -1,6 +1,6 @@
 // Configuração da API
-const API_BASE_URL = 'http://localhost:3001/api';
-const WS_URL = 'http://localhost:3001';
+const API_BASE_URL = 'http://localhost:3002/api';
+const WS_URL = 'http://localhost:3002';
 
 // Objeto global para armazenar dados da sessão
 const SESSION = {
@@ -246,13 +246,16 @@ async function deleteComment(postId, commentId) {
 // ====================================================
 
 async function getActiveStories() {
-  return apiRequest('/stories/active');
+  return apiRequest('/api/stories/active');
 }
 
-async function createStory(imageUrl = null, file = null) {
+async function createStory(imageUrl = null, file = null, userId = null) {
   if (file) {
     const formData = new FormData();
     formData.append('image', file);
+    if (userId) {
+      formData.append('userId', userId);
+    }
     
     const options = {
       method: 'POST',
@@ -263,7 +266,7 @@ async function createStory(imageUrl = null, file = null) {
     };
 
     try {
-      const response = await fetch(`${API_BASE_URL}/stories`, options);
+      const response = await fetch(`${API_BASE_URL}/stories/create`, options);
       const data = await response.json();
       return { success: response.ok, data };
     } catch (error) {
@@ -271,19 +274,19 @@ async function createStory(imageUrl = null, file = null) {
     }
   }
 
-  return apiRequest('/stories', 'POST', { image_url: imageUrl });
+  return apiRequest('/stories/create', 'POST', { image_url: imageUrl, userId });
 }
 
 async function markStoryViewed(storyId) {
-  return apiRequest(`/stories/${storyId}/view`, 'POST');
+  return apiRequest(`/api/stories/${storyId}/view`, 'POST');
 }
 
 async function getUserStories(userId) {
-  return apiRequest(`/stories/user/${userId}`);
+  return apiRequest(`/api/stories/user/${userId}`);
 }
 
 async function getFollowersStories() {
-  return apiRequest('/stories/followers/list');
+  return apiRequest('/api/stories/followers/list');
 }
 
 // ====================================================

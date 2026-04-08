@@ -5,6 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ÉdenX - A Rede Social</title>
+    <link rel="icon" type="image/x-icon" href="/images/EdenX-icon.png">
     <link rel="stylesheet" href="styles.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
@@ -181,13 +182,13 @@
                             <div class="profile-avatar-main">
                                 <img id="profile-avatar" src="" alt="Avatar">
                                 <button class="btn-edit-profile" id="btn-edit-profile" onclick="handleEditProfile()">Editar perfil</button>
+                                <button id="open-settings-btn" class="btn-config-profile"><img class="imagem-config" src="./images/config.png"
+                                    alt="config"></button>
                             </div>
 
-                            <div class="header-actions" style="display: flex; gap: 8px; align-items: center;">
+                            <div class="header-actions" style="display: flex; gap: 16px; align-items: center;">
                                 <button id="profile-follow-btn" class="btn-edit-profilee" style="display: none;">Seguir</button>
                                 <button id="profile-message-btn" class="btn-edit-profilee" style="display:none;">Mensagem</button>
-                                <button id="open-settings-btn" class="btn-edit-profilee"><img class="imagem-config" src="./images/config.png"
-                                    alt="config"></button>
                             </div>
                         </div>
 

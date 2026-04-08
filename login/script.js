@@ -3,11 +3,12 @@ const canvas = document.getElementById('bgCanvas');
 const ctx = canvas.getContext('2d');
 
 let width, height, particles;
+const BASE_URL = 'http://localhost:3002';
 
 function normalizeAvatarUrl(avatarUrl) {
     if (!avatarUrl) return null;
     if (avatarUrl.startsWith('http://') || avatarUrl.startsWith('https://')) return avatarUrl;
-    const base = 'http://localhost:3001';
+    const base = BASE_URL;
     if (avatarUrl.startsWith('/')) {
         return `${base}${avatarUrl}`;
     }
@@ -101,7 +102,7 @@ document.addEventListener('submit', async (e) => {
         const password = document.getElementById('password').value;
 
         try {
-            const response = await fetch('http://localhost:3001/api/users/login', {
+            const response = await fetch(`${BASE_URL}/api/users/login`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ email: user, password })
@@ -142,7 +143,7 @@ document.addEventListener('submit', async (e) => {
             // Gerar username a partir do email ou nome
             const username = name.trim().replace(/\s+/g, '_').toLowerCase() || email.split('@')[0];
             
-            const response = await fetch('http://localhost:3001/api/users/register', {
+            const response = await fetch(`${BASE_URL}/api/users/register`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({

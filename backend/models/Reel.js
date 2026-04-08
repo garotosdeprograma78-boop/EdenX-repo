@@ -23,10 +23,10 @@ class Reel {
       FROM reels r
       JOIN users u ON r.user_id = u.id
       ORDER BY r.created_at DESC
-      LIMIT ? OFFSET ?
+      LIMIT ${parseInt(limit)} OFFSET ${parseInt(offset)}
     `;
     try {
-      const result = await pool.query(query, [limit, offset]);
+      const result = await pool.query(query, []);
       return result.rows || [];
     } catch (error) {
       console.error('Erro ao buscar reels:', error);
@@ -43,10 +43,10 @@ class Reel {
       JOIN users u ON r.user_id = u.id
       WHERE r.user_id = ?
       ORDER BY r.created_at DESC
-      LIMIT ? OFFSET ?
+      LIMIT ${parseInt(limit)} OFFSET ${parseInt(offset)}
     `;
     try {
-      const result = await pool.query(query, [userId, limit, offset]);
+      const result = await pool.query(query, [userId]);
       return result.rows || [];
     } catch (error) {
       console.error('Erro ao buscar reels do usuário:', error);

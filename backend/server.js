@@ -12,6 +12,9 @@ dotenv.config();
 const db = require('./config/database');
 const Message = require('./models/Message');
 
+// Importar limpeza de stories
+require('./cleanup-stories');
+
 // Inicializar Express
 const app = express();
 const server = http.createServer(app);
@@ -27,7 +30,7 @@ app.use(cors());
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ limit: '50mb', extended: true }));
 
-app.use('/uploads', express.static('uploads'));
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 // Socket.IO para mensagens em tempo real
 const activeUsers = {};

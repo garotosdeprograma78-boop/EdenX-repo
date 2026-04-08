@@ -66,16 +66,18 @@ document.addEventListener('DOMContentLoaded', async () => {
         storiesWrapper.innerHTML = '';
 
         storiesData.forEach(story => {
-            const storyEl = document.createElement('div');
-            storyEl.className = 'story-item';
+            const storyEl = document.createElement(story.isYou ? 'button' : 'div');
+            storyEl.className = `story-item${story.isYou ? ' story-add-button' : ''}`;
+            if (story.isYou) {
+                storyEl.type = 'button';
+            }
             storyEl.innerHTML = `
                 <div class="story-ring">
                     <div class="story-inner">
-                        <img src="${story.avatar}" alt="${story.username}" />
-                        ${story.isYou ? '<div class="story-add-icon"><i class="fa-solid fa-plus"></i></div>' : ''}
+                        ${story.isYou ? '<i class="fa-solid fa-plus story-add-icon"></i>' : `<img src="${story.avatar}" alt="${story.username}" />`}
                     </div>
                 </div>
-                <p>${story.isYou ? 'Você' : story.username}</p>
+                <p>${story.isYou ? 'Postar Story' : story.username}</p>
             `;
 
             storyEl.addEventListener('click', () => {
@@ -137,17 +139,20 @@ document.addEventListener('DOMContentLoaded', async () => {
         const modal = document.getElementById('story-post-modal');
         if (!modal) return;
         modal.style.display = 'flex';
+        document.body.classList.add('modal-active');
     }
 
     function closeStoryPostModal() {
         const modal = document.getElementById('story-post-modal');
         if (!modal) return;
         modal.style.display = 'none';
+        document.body.classList.remove('modal-active');
     }
 
-    function postStory() {
+    async function postStory() {
         const fileInput = document.getElementById('story-image-input');
         const captionInput = document.getElementById('story-caption-input');
+        const storyPostBtn = document.getElementById('story-post-btn');
 
         if (!fileInput || !captionInput) return;
 
@@ -157,26 +162,47 @@ document.addEventListener('DOMContentLoaded', async () => {
             return;
         }
 
-        const reader = new FileReader();
-        reader.onload = (e) => {
-            const newStory = {
-                id: `story-${Date.now()}`,
-                username: currentUser.username.replace('@', ''),
-                avatar: currentUser.avatarUrl,
-                image: e.target.result,
-                caption: captionInput.value.trim() || 'Minha story',
-                timestamp: 'Agora',
-                isYou: false
-            };
+        if (storyPostBtn) {
+            storyPostBtn.disabled = true;
+            storyPostBtn.textContent = 'Enviando...';
+        }
 
-            storiesData.unshift(newStory);
-            renderStories();
-            closeStoryPostModal();
+        const result = await createStory(null, file, SESSION.userId);
 
-            fileInput.value = '';
-            captionInput.value = '';
+        if (!result.success) {
+            alert(`Erro ao postar story: ${result.error || 'Verifique sua conexão.'}`);
+            if (storyPostBtn) {
+                storyPostBtn.disabled = false;
+                storyPostBtn.textContent = 'Postar Story';
+            }
+            return;
+        }
+
+        const imageUrl = result.data?.imageUrl
+            ? `${API_BASE_URL.replace(/\/api$/, '')}${result.data.imageUrl}`
+            : URL.createObjectURL(file);
+
+        const newStory = {
+            id: `story-${Date.now()}`,
+            username: currentUser.username.replace('@', ''),
+            avatar: currentUser.avatarUrl,
+            image: imageUrl,
+            caption: captionInput.value.trim() || 'Minha story',
+            timestamp: 'Agora',
+            isYou: false
         };
-        reader.readAsDataURL(file);
+
+        storiesData.unshift(newStory);
+        renderStories();
+        closeStoryPostModal();
+
+        fileInput.value = '';
+        captionInput.value = '';
+
+        if (storyPostBtn) {
+            storyPostBtn.disabled = false;
+            storyPostBtn.textContent = 'Postar Story';
+        }
     }
 
     renderStories();
@@ -184,6 +210,16 @@ document.addEventListener('DOMContentLoaded', async () => {
     // Expor funções globais para uso em atributos onclick do modal de story
     window.closeStoryPostModal = closeStoryPostModal;
     window.postStory = postStory;
+
+    // Adicionar event listener para fechar o modal clicando no overlay
+    const storyModal = document.getElementById('story-post-modal');
+    if (storyModal) {
+        storyModal.addEventListener('click', (event) => {
+            if (event.target === storyModal) {
+                closeStoryPostModal();
+            }
+        });
+    }
 
     // Associa botões do modal de story
     const storyPostBtn = document.getElementById('story-post-btn');

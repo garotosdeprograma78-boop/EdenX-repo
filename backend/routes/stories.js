@@ -8,7 +8,7 @@ const path = require('path');
 // Configuração do multer para upload de imagens
 const storage = multer.diskStorage({
     destination: (req, file, cb) => {
-        cb(null, path.join(__dirname, '../../uploads/stories/'));
+        cb(null, path.join(__dirname, '../uploads/stories/'));
     },
     filename: (req, file, cb) => {
         const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
@@ -22,10 +22,9 @@ const upload = multer({
 });
 
 // Rota para criar uma story
-router.post('/create', auth, upload.single('image'), async (req, res) => {
+router.post('/create', upload.single('image'), async (req, res) => {
     try {
-        const { type = 'image' } = req.body;
-        const userId = req.user.id;
+        const { type = 'image', userId } = req.body;
         // Corrigido: Uso de template literals (crases)
         const imageUrl = req.file ? `/uploads/stories/${req.file.filename}` : null;
 
@@ -33,8 +32,13 @@ router.post('/create', auth, upload.single('image'), async (req, res) => {
             return res.status(400).json({ error: 'Imagem é obrigatória' });
         }
 
-        const storyId = await Story.create(userId, imageUrl, type);
-        res.status(201).json({ message: 'Story criada com sucesso', storyId });
+        const storyId = await Story.create(userId || null, imageUrl, type);
+        res.status(201).json({
+            message: 'Story criada com sucesso',
+            storyId,
+            imageUrl,
+            userId: userId || null
+        });
     } catch (error) {
         console.error('Erro ao criar story:', error);
         res.status(500).json({ error: 'Erro interno do servidor' });
@@ -42,7 +46,7 @@ router.post('/create', auth, upload.single('image'), async (req, res) => {
 });
 
 // Rota para obter stories ativas
-router.get('/active', auth, async (req, res) => {
+router.get('/active', async (req, res) => {
     try {
         const limit = parseInt(req.query.limit) || 50;
         const stories = await Story.getActiveStories(limit);
