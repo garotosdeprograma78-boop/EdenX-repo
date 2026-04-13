@@ -2825,4 +2825,9 @@ body.light-theme .username {
     filter: invert(80%) sepia(100%) saturate(10000%) hue-rotate(100deg);
 }
 
+#codevast{
+    color: var(--cyan-primary);
+    font-size: 12px;
+}
+
 /* Apague a chave "}" solitária que tinha aqui embaixo */

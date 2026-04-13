@@ -12,11 +12,25 @@ const storage = multer.diskStorage({
     cb(null, uploadDir);
   },
   filename: (req, file, cb) => {
-    cb(null, 'story-' + Date.now() + path.extname(file.originalname));
+    cb(null, 'story-' + Date.now() + '-' + Math.round(Math.random() * 1E9) + path.extname(file.originalname));
   }
 });
 
-const upload = multer({ storage });
+const fileFilter = (req, file, cb) => {
+  // Aceitar apenas imagens
+  const allowedMimes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+  if (allowedMimes.includes(file.mimetype)) {
+    cb(null, true);
+  } else {
+    cb(new Error('Apenas imagens são permitidas (JPEG, PNG, GIF, WebP)'), false);
+  }
+};
+
+const upload = multer({ 
+  storage: storage,
+  fileFilter: fileFilter,
+  limits: { fileSize: 10 * 1024 * 1024 } // 10MB max
+});
 
 exports.createStory = async (req, res) => {
   try {
@@ -28,18 +42,26 @@ exports.createStory = async (req, res) => {
     }
 
     if (!imageUrl) {
-      return res.status(400).json({ message: 'Imagem é obrigatória' });
+      return res.status(400).json({ message: 'Imagem é obrigatória', code: 'NO_IMAGE' });
     }
 
     const storyId = await Story.create(userId, imageUrl, 'image');
 
     res.status(201).json({
-      message: 'Story criado com sucesso',
-      storyId
+      message: 'Story criado com sucesso 🎉',
+      storyId,
+      imageUrl,
+      expiresIn: '24 horas'
     });
   } catch (error) {
-    console.error(error);
-    res.status(500).json({ message: 'Erro ao criar story' });
+    console.error('Erro ao criar story:', error);
+    // Se houver arquivo, deletá-lo em caso de erro
+    if (req.file) {
+      fs.unlink(`./uploads/stories/${req.file.filename}`, (err) => {
+        if (err) console.error('Erro ao deletar arquivo:', err);
+      });
+    }
+    res.status(500).json({ message: 'Erro ao criar story', error: error.message });
   }
 };
 
@@ -49,10 +71,10 @@ exports.getActiveStories = async (req, res) => {
 
     const stories = await Story.getActiveStories(parseInt(limit));
 
-    res.json(stories);
+    res.json({ success: true, data: stories, count: stories.length });
   } catch (error) {
-    console.error(error);
-    res.status(500).json({ message: 'Erro ao carregar stories' });
+    console.error('Erro ao carregar stories:', error);
+    res.status(500).json({ message: 'Erro ao carregar stories', success: false });
   }
 };
 
@@ -62,10 +84,10 @@ exports.getUserStories = async (req, res) => {
 
     const stories = await Story.getUserStories(userId);
 
-    res.json(stories);
+    res.json({ success: true, data: stories, count: stories.length });
   } catch (error) {
-    console.error(error);
-    res.status(500).json({ message: 'Erro ao carregar stories do usuário' });
+    console.error('Erro ao carregar stories do usuário:', error);
+    res.status(500).json({ message: 'Erro ao carregar stories do usuário', success: false });
   }
 };
 
@@ -76,24 +98,28 @@ exports.getFollowersStories = async (req, res) => {
 
     const stories = await Story.getFollowersStories(userId, parseInt(limit));
 
-    res.json(stories);
+    res.json({ success: true, data: stories, count: stories.length });
   } catch (error) {
-    console.error(error);
-    res.status(500).json({ message: 'Erro ao carregar stories dos seguidores' });
+    console.error('Erro ao carregar stories dos seguidores:', error);
+    res.status(500).json({ message: 'Erro ao carregar stories dos seguidores', success: false });
   }
 };
 
 exports.markStoryViewed = async (req, res) => {
   try {
-    const userId = req.user.id;
+    const userId = req.user ? req.user.id : null;
     const { storyId } = req.params;
+
+    if (!userId) {
+      return res.status(401).json({ message: 'Usuário não autenticado' });
+    }
 
     await Story.markStoryViewed(storyId, userId);
 
-    res.json({ message: 'Story marcado como visualizado' });
+    res.json({ message: 'Story marcado como visualizado ✓', success: true });
   } catch (error) {
-    console.error(error);
-    res.status(500).json({ message: 'Erro ao marcar story como visualizado' });
+    console.error('Erro ao marcar story como visualizado:', error);
+    res.status(500).json({ message: 'Erro ao marcar story como visualizado', success: false });
   }
 };
 
@@ -103,10 +129,10 @@ exports.getStoryViews = async (req, res) => {
 
     const views = await Story.getStoryViews(storyId);
 
-    res.json(views);
+    res.json({ success: true, data: views, count: views.length });
   } catch (error) {
-    console.error(error);
-    res.status(500).json({ message: 'Erro ao carregar visualizações do story' });
+    console.error('Erro ao carregar visualizações do story:', error);
+    res.status(500).json({ message: 'Erro ao carregar visualizações do story', success: false });
   }
 };
 

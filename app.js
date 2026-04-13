@@ -231,7 +231,22 @@ async function loadHeadStories() {
       result.data.forEach(story => {
         const storyEl = document.createElement('div');
         storyEl.className = 'story-item';
-        storyEl.style.cssText = 'text-align:center; cursor:pointer;';
+        storyEl.style.cssText = 'text-align:center; cursor:pointer; position: relative;';
+        
+        // Calcular tempo restante
+        let timeRemaining = '';
+        if (story.expires_at) {
+          const expiresDate = new Date(story.expires_at);
+          const now = new Date();
+          const minutesLeft = Math.floor((expiresDate - now) / 1000 / 60);
+          
+          if (minutesLeft > 60) {
+            timeRemaining = `${Math.floor(minutesLeft / 60)}h`;
+          } else if (minutesLeft > 0) {
+            timeRemaining = `${minutesLeft}m`;
+          }
+        }
+        
         storyEl.innerHTML = `
           <div class="story-ring">
             <div class="story-inner">
@@ -239,6 +254,7 @@ async function loadHeadStories() {
             </div>
           </div>
           <p style="font-size:0.65rem; margin-top:5px; color:var(--text-gray)">${story.username}</p>
+          ${timeRemaining ? `<span style="font-size: 0.5rem; color: var(--cyan-primary); position: absolute; top: 0; right: 0; background: rgba(0,0,0,0.7); padding: 2px 4px; border-radius: 3px;">${timeRemaining}</span>` : ''}
         `;
 
         storyEl.addEventListener('click', () => openStoryViewer(story));
@@ -259,13 +275,74 @@ function openStoryUploader() {
     const file = e.target.files[0];
     if (!file) return;
 
+    // Validação de arquivo
+    const validMimes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+    if (!validMimes.includes(file.type)) {
+      alert('❌ Por favor, selecione uma imagem válida (JPEG, PNG, GIF ou WebP)');
+      return;
+    }
+
+    if (file.size > 10 * 1024 * 1024) {
+      alert('❌ A imagem não pode ter mais de 10MB');
+      return;
+    }
+
+    // Mostrar loading
+    const loadingToast = document.createElement('div');
+    loadingToast.style.cssText = `
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      background: rgba(0,0,0,0.8);
+      color: white;
+      padding: 15px 20px;
+      border-radius: 8px;
+      z-index: 10000;
+      border-left: 4px solid #00d4ff;
+    `;
+    loadingToast.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Enviando story...';
+    document.body.appendChild(loadingToast);
+
     const result = await createStory(null, file);
     
+    loadingToast.remove();
+
     if (result.success) {
-      alert('Story postado com sucesso! 🎉');
+      const successToast = document.createElement('div');
+      successToast.style.cssText = `
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        background: rgba(0,0,0,0.8);
+        color: #00d4ff;
+        padding: 15px 20px;
+        border-radius: 8px;
+        z-index: 10000;
+        border-left: 4px solid #00d4ff;
+      `;
+      successToast.innerHTML = '<i class="fa-solid fa-check"></i> Story postada com sucesso! Expira em 24h';
+      document.body.appendChild(successToast);
+      
+      setTimeout(() => successToast.remove(), 3000);
+      
       loadHeadStories(); // Recarregar stories
     } else {
-      alert('Erro ao postar story');
+      const errorToast = document.createElement('div');
+      errorToast.style.cssText = `
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        background: rgba(0,0,0,0.8);
+        color: #ff006e;
+        padding: 15px 20px;
+        border-radius: 8px;
+        z-index: 10000;
+        border-left: 4px solid #ff006e;
+      `;
+      errorToast.innerHTML = '<i class="fa-solid fa-exclamation"></i> Erro ao postar story';
+      document.body.appendChild(errorToast);
+      
+      setTimeout(() => errorToast.remove(), 3000);
     }
   });
 
@@ -281,25 +358,101 @@ function openStoryViewer(story) {
     left: 0;
     right: 0;
     bottom: 0;
-    background: rgba(0,0,0,0.9);
+    background: rgba(0,0,0,0.95);
     display: flex;
     align-items: center;
     justify-content: center;
     z-index: 9999;
   `;
 
+  // Calcular tempo restante
+  let timeRemaining = 'Carregando...';
+  let progressPercent = 100;
+  
+  if (story.expires_at) {
+    const expiresDate = new Date(story.expires_at);
+    const createdDate = new Date(story.created_at);
+    const now = new Date();
+    const totalDuration = expiresDate - createdDate;
+    const timeElapsed = now - createdDate;
+    const minutesLeft = Math.floor((expiresDate - now) / 1000 / 60);
+    
+    progressPercent = Math.max(0, Math.min(100, (timeElapsed / totalDuration) * 100));
+    
+    if (minutesLeft > 60) {
+      timeRemaining = `${Math.floor(minutesLeft / 60)}h ${minutesLeft % 60}m restante`;
+    } else if (minutesLeft > 0) {
+      timeRemaining = `${minutesLeft}m restante`;
+    } else {
+      timeRemaining = 'Expirando em breve...';
+    }
+  }
+
   modal.innerHTML = `
-    <div style="position: relative; width: 100%; max-width: 400px; height: 100vh; max-height: 100vh;">
-      <img src="${story.image_url}" alt="Story" style="width: 100%; height: 100%; object-fit: contain;">
-      <button onclick="this.parentElement.parentElement.remove()" style="
-        position: absolute; top: 20px; right: 20px;
-        background: rgba(0,0,0,0.5); border: none;
-        color: white; font-size: 1.5rem;
-        cursor: pointer; padding: 10px 15px; border-radius: 50%;
-      "><i class="fa-solid fa-xmark"></i></button>
-      <div style="position: absolute; bottom: 20px; left: 20px; color: white;">
-        <p><strong>@${story.username}</strong></p>
-        <p style="font-size: 0.8rem; opacity: 0.8;">Postado há pouco</p>
+    <div style="position: relative; width: 100%; max-width: 400px; height: 100vh; max-height: 100vh; display: flex; flex-direction: column;">
+      <!-- Progress bar -->
+      <div style="
+        height: 3px;
+        background: linear-gradient(90deg, #00d4ff 0%, #ff006e 100%);
+        width: ${progressPercent}%;
+        transition: width 0.3s ease;
+      "></div>
+      
+      <!-- Header -->
+      <div style="
+        background: linear-gradient(180deg, rgba(0,0,0,0.7) 0%, rgba(0,0,0,0) 100%);
+        padding: 20px;
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        z-index: 10;
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+      ">
+        <div style="display: flex; align-items: center; gap: 10px; color: white;">
+          <img src="${story.avatar_url || 'https://i.pravatar.cc/150?u=' + story.username}" style="width: 40px; height: 40px; border-radius: 50%;">
+          <div>
+            <p style="margin: 0; font-weight: 600;">@${story.username}</p>
+            <p style="margin: 0; font-size: 0.8rem; opacity: 0.8;">${timeRemaining}</p>
+          </div>
+        </div>
+        <button onclick="this.closest('.story-modal').remove()" style="
+          background: rgba(255,255,255,0.2);
+          border: none;
+          color: white;
+          font-size: 1.5rem;
+          cursor: pointer;
+          padding: 8px 12px;
+          border-radius: 50%;
+          transition: background 0.2s;
+        " onmouseover="this.style.background='rgba(255,255,255,0.3)'" onmouseout="this.style.background='rgba(255,255,255,0.2)'">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+
+      <!-- Image -->
+      <img src="${story.image_url}" alt="Story" style="
+        width: 100%;
+        height: 100%;
+        object-fit: contain;
+        flex: 1;
+      ">
+
+      <!-- Footer Info -->
+      <div style="
+        background: linear-gradient(0deg, rgba(0,0,0,0.7) 0%, rgba(0,0,0,0) 100%);
+        padding: 20px;
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        color: white;
+      ">
+        <p style="margin: 0; font-size: 0.9rem;">
+          <i class="fa-solid fa-eye"></i> Story expira em ${timeRemaining.toLowerCase()}
+        </p>
       </div>
     </div>
   `;
@@ -311,9 +464,9 @@ function openStoryViewer(story) {
     markStoryViewed(story.id);
   }
 
-  // Fechar ao clicar
+  // Fechar ao clicar fora
   modal.addEventListener('click', (e) => {
-    if (e.target === modal) {
+    if (e.target === modal || e.target.closest('.story-modal') === modal) {
       modal.remove();
     }
   });
@@ -326,6 +479,26 @@ function openStoryViewer(story) {
     }
   };
   document.addEventListener('keydown', closeHandler);
+
+  // Atualizar progress bar a cada segundo
+  let updateInterval = setInterval(() => {
+    if (!document.body.contains(modal)) {
+      clearInterval(updateInterval);
+      return;
+    }
+
+    const now = new Date();
+    const expiresDate = new Date(story.expires_at);
+    const createdDate = new Date(story.created_at);
+    const totalDuration = expiresDate - createdDate;
+    const timeElapsed = now - createdDate;
+    const newProgressPercent = Math.max(0, Math.min(100, (timeElapsed / totalDuration) * 100));
+    
+    const progressBar = modal.querySelector('div > div:first-child');
+    if (progressBar) {
+      progressBar.style.width = newProgressPercent + '%';
+    }
+  }, 1000);
 }
 
 function setupStoriesListeners() {
