@@ -985,6 +985,13 @@ body { background-color: var(--bg-dark); color: white; height: 100vh; overflow: 
     box-shadow: 0 4px 15px rgba(92, 225, 230, 0.2);
 }
 
+#chat-messages-area {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    padding: 20px;
+}
+
 /* Barra de Entrada de Texto */
 .chat-input-bar {
     padding: 20px;

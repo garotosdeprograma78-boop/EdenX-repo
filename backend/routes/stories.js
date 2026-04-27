@@ -116,6 +116,25 @@ router.get('/:storyId/views', async (req, res) => {
     }
 });
 
+// Rota para deletar uma story (apenas o dono pode deletar)
+router.delete('/:storyId', auth, async (req, res) => {
+    try {
+        const userId = req.user.id;
+        const { storyId } = req.params;
+
+        const deleted = await Story.deleteStory(storyId, userId);
+
+        if (deleted) {
+            res.json({ message: 'Story deletada com sucesso', success: true });
+        } else {
+            res.status(404).json({ error: 'Story não encontrada ou sem permissão', success: false });
+        }
+    } catch (error) {
+        console.error('Erro ao deletar story:', error);
+        res.status(500).json({ error: 'Erro interno do servidor', success: false });
+    }
+});
+
 // Rota para obter info de expiração de uma story
 router.get('/:storyId/expiration', async (req, res) => {
     try {

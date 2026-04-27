@@ -411,6 +411,8 @@ function openStoryViewer(story) {
     }
   }
 
+  const isOwnStory = String(story.user_id) === String(SESSION.userId);
+
   modal.innerHTML = `
     <div style="position: relative; width: 100%; max-width: 400px; height: 100vh; max-height: 100vh; display: flex; flex-direction: column;">
       <!-- Progress bar -->
@@ -441,18 +443,34 @@ function openStoryViewer(story) {
             <p style="margin: 0; font-size: 0.8rem; opacity: 0.8;">${timeRemaining}</p>
           </div>
         </div>
-        <button onclick="this.closest('.story-modal').remove()" style="
-          background: rgba(255,255,255,0.2);
-          border: none;
-          color: white;
-          font-size: 1.5rem;
-          cursor: pointer;
-          padding: 8px 12px;
-          border-radius: 50%;
-          transition: background 0.2s;
-        " onmouseover="this.style.background='rgba(255,255,255,0.3)'" onmouseout="this.style.background='rgba(255,255,255,0.2)'">
-          <i class="fa-solid fa-xmark"></i>
-        </button>
+        <div style="display: flex; gap: 8px; align-items: center;">
+          ${isOwnStory ? `
+          <button class="story-delete-btn" style="
+            background: rgba(255,0,0,0.6);
+            border: none;
+            color: white;
+            font-size: 1rem;
+            cursor: pointer;
+            padding: 8px 12px;
+            border-radius: 50%;
+            transition: background 0.2s;
+          " onmouseover="this.style.background='rgba(255,0,0,0.8)'" onmouseout="this.style.background='rgba(255,0,0,0.6)'" title="Excluir story">
+            <i class="fa-solid fa-trash"></i>
+          </button>
+          ` : ''}
+          <button onclick="this.closest('.story-modal').remove()" style="
+            background: rgba(255,255,255,0.2);
+            border: none;
+            color: white;
+            font-size: 1.5rem;
+            cursor: pointer;
+            padding: 8px 12px;
+            border-radius: 50%;
+            transition: background 0.2s;
+          " onmouseover="this.style.background='rgba(255,255,255,0.3)'" onmouseout="this.style.background='rgba(255,255,255,0.2)'">
+            <i class="fa-solid fa-xmark"></i>
+          </button>
+        </div>
       </div>
 
       <!-- Image -->
@@ -479,6 +497,29 @@ function openStoryViewer(story) {
       </div>
     </div>
   `;
+
+  if (isOwnStory) {
+    const deleteBtn = modal.querySelector('.story-delete-btn');
+    if (deleteBtn) {
+      deleteBtn.addEventListener('click', async () => {
+        if (!confirm('Tem certeza que deseja excluir esta story?')) return;
+
+        const result = await deleteStory(story.id);
+        if (result.success) {
+          modal.remove();
+          loadHeadStories();
+
+          const toast = document.createElement('div');
+          toast.style.cssText = 'position:fixed;top:20px;right:20px;background:rgba(0,0,0,0.8);color:#00d4ff;padding:15px 20px;border-radius:8px;z-index:10000;border-left:4px solid #00d4ff;';
+          toast.innerHTML = '<i class="fa-solid fa-check"></i> Story excluída com sucesso!';
+          document.body.appendChild(toast);
+          setTimeout(() => toast.remove(), 3000);
+        } else {
+          alert('Erro ao excluir story.');
+        }
+      });
+    }
+  }
 
   document.body.appendChild(modal);
 
@@ -712,7 +753,7 @@ async function openChat(userId, username, avatarUrl) {
 
   if (result.success && result.data) {
     result.data.forEach(msg => {
-      const isOwn = msg.sender_id === SESSION.userId;
+      const isOwn = String(msg.sender_id) === String(SESSION.userId);
       const msgEl = document.createElement('div');
       msgEl.className = `message-bubble ${isOwn ? 'sent' : 'received'}`;
 
@@ -844,7 +885,7 @@ function setupWebSocketListeners() {
     console.log('Mensagem recebida (WebSocket):', message || mediaUrl);
 
     // Atualizar chat se estiver aberto
-    if (window.activeChatUserId === senderId) {
+    if (String(window.activeChatUserId) === String(senderId)) {
       const messagesArea = document.getElementById('chat-messages-area');
       const msgEl = document.createElement('div');
       msgEl.className = 'message-bubble received';
