@@ -3,6 +3,21 @@ const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
 
+function makeAbsoluteUrl(req, url) {
+  if (!url) return url;
+  if (url.startsWith('http://') || url.startsWith('https://')) return url;
+  const baseUrl = `${req.protocol}://${req.get('host')}`;
+  return url.startsWith('/') ? `${baseUrl}${url}` : `${baseUrl}/${url}`;
+}
+
+function normalizeStory(story, req) {
+  return {
+    ...story,
+    image_url: makeAbsoluteUrl(req, story.image_url),
+    avatar_url: makeAbsoluteUrl(req, story.avatar_url)
+  };
+}
+
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
     const uploadDir = './uploads/stories';
@@ -46,11 +61,12 @@ exports.createStory = async (req, res) => {
     }
 
     const storyId = await Story.create(userId, imageUrl, 'image');
+    const responseImageUrl = makeAbsoluteUrl(req, imageUrl);
 
     res.status(201).json({
       message: 'Story criado com sucesso 🎉',
       storyId,
-      imageUrl,
+      imageUrl: responseImageUrl,
       expiresIn: '24 horas'
     });
   } catch (error) {
@@ -70,8 +86,9 @@ exports.getActiveStories = async (req, res) => {
     const { limit = 50 } = req.query;
 
     const stories = await Story.getActiveStories(parseInt(limit));
+    const normalizedStories = stories.map(story => normalizeStory(story, req));
 
-    res.json({ success: true, data: stories, count: stories.length });
+    res.json({ success: true, data: normalizedStories, count: normalizedStories.length });
   } catch (error) {
     console.error('Erro ao carregar stories:', error);
     res.status(500).json({ message: 'Erro ao carregar stories', success: false });
@@ -83,8 +100,9 @@ exports.getUserStories = async (req, res) => {
     const { userId } = req.params;
 
     const stories = await Story.getUserStories(userId);
+    const normalizedStories = stories.map(story => normalizeStory(story, req));
 
-    res.json({ success: true, data: stories, count: stories.length });
+    res.json({ success: true, data: normalizedStories, count: normalizedStories.length });
   } catch (error) {
     console.error('Erro ao carregar stories do usuário:', error);
     res.status(500).json({ message: 'Erro ao carregar stories do usuário', success: false });
@@ -97,8 +115,9 @@ exports.getFollowersStories = async (req, res) => {
     const { limit = 50 } = req.query;
 
     const stories = await Story.getFollowersStories(userId, parseInt(limit));
+    const normalizedStories = stories.map(story => normalizeStory(story, req));
 
-    res.json({ success: true, data: stories, count: stories.length });
+    res.json({ success: true, data: normalizedStories, count: normalizedStories.length });
   } catch (error) {
     console.error('Erro ao carregar stories dos seguidores:', error);
     res.status(500).json({ message: 'Erro ao carregar stories dos seguidores', success: false });

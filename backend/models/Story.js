@@ -4,7 +4,7 @@ class Story {
   static async create(userId, imageUrl, type = 'image') {
     const query = `
       INSERT INTO stories (user_id, image_url, story_type, created_at, expires_at)
-      VALUES (?, ?, ?, CURRENT_TIMESTAMP, datetime('now', '+24 hours'))
+      VALUES (?, ?, ?, CURRENT_TIMESTAMP, DATE_ADD(CURRENT_TIMESTAMP, INTERVAL 24 HOUR))
     `;
     try {
       const result = await pool.execute(query, [userId, imageUrl, type]);
@@ -72,7 +72,7 @@ class Story {
 
   static async markStoryViewed(storyId, userId) {
     const query = `
-      INSERT OR REPLACE INTO story_views (story_id, user_id, viewed_at)
+      INSERT INTO story_views (story_id, user_id, viewed_at)
       VALUES (?, ?, CURRENT_TIMESTAMP)
     `;
     try {

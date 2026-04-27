@@ -96,6 +96,13 @@ document.addEventListener('DOMContentLoaded', async () => {
         const existing = document.querySelector('.story-interactive-modal');
         if (existing) existing.remove();
 
+        const baseUrl = window.API_BASE_URL ? window.API_BASE_URL.replace(/\/api$/, '') : '';
+        const storyImageUrl = story.image && story.image.startsWith('http')
+            ? story.image
+            : story.image && story.image.startsWith('/')
+                ? `${baseUrl}${story.image}`
+                : story.image || '';
+
         const modal = document.createElement('div');
         modal.className = 'story-interactive-modal';
         modal.innerHTML = `
@@ -113,7 +120,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                     </div>
                     <i class="fa-solid fa-xmark close-btn" onclick="closeStoryModal()"></i>
                 </div>
-                <img src="${story.image}" class="story-main-img" alt="Story Content">
+                <img src="${storyImageUrl}" class="story-main-img" alt="Story Content">
                 <div class="story-interaction-footer">
                     <div class="story-reply-box">
                         <input type="text" id="story-reply-input" placeholder="Enviar mensagem..." onkeypress="handleStoryReplyEnter(event)">
@@ -167,7 +174,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             storyPostBtn.textContent = 'Enviando...';
         }
 
-        const result = await createStory(null, file, SESSION.userId);
+        const result = await createStory(null, file);
 
         if (!result.success) {
             alert(`Erro ao postar story: ${result.error || 'Verifique sua conexão.'}`);

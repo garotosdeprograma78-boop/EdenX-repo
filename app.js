@@ -77,6 +77,16 @@ let reelsLazyLoader = null;
 // FUNÇÕES AUXILIARES
 // ====================================================
 
+function formatPostTime(timestamp) {
+  if (!timestamp) return 'Agora';
+  try {
+    const d = new Date(timestamp);
+    return d.toLocaleString('pt-BR');
+  } catch (e) {
+    return 'Agora';
+  }
+}
+
 function showView(viewId) {
   // Remove classe 'active' de todos os nav-items e views
   document.querySelectorAll('.nav-item').forEach(item => item.classList.remove('active'));
@@ -350,6 +360,19 @@ function openStoryUploader() {
 }
 
 function openStoryViewer(story) {
+  const serverBase = API_BASE_URL.replace(/\/api$/, '');
+  const storyImageUrl = story.image_url && story.image_url.startsWith('http')
+    ? story.image_url
+    : story.image_url
+      ? `${serverBase}${story.image_url}`
+      : '';
+
+  const avatarUrl = story.avatar_url && story.avatar_url.startsWith('http')
+    ? story.avatar_url
+    : story.avatar_url
+      ? `${serverBase}${story.avatar_url}`
+      : `https://i.pravatar.cc/150?u=${story.username}`;
+
   const modal = document.createElement('div');
   modal.className = 'story-modal';
   modal.style.cssText = `
@@ -412,7 +435,7 @@ function openStoryViewer(story) {
         align-items: flex-start;
       ">
         <div style="display: flex; align-items: center; gap: 10px; color: white;">
-          <img src="${story.avatar_url || 'https://i.pravatar.cc/150?u=' + story.username}" style="width: 40px; height: 40px; border-radius: 50%;">
+          <img src="${avatarUrl}" style="width: 40px; height: 40px; border-radius: 50%;">
           <div>
             <p style="margin: 0; font-weight: 600;">@${story.username}</p>
             <p style="margin: 0; font-size: 0.8rem; opacity: 0.8;">${timeRemaining}</p>
@@ -433,7 +456,7 @@ function openStoryViewer(story) {
       </div>
 
       <!-- Image -->
-      <img src="${story.image_url}" alt="Story" style="
+      <img src="${storyImageUrl}" alt="Story" style="
         width: 100%;
         height: 100%;
         object-fit: contain;
@@ -1036,12 +1059,16 @@ async function loadProfilePosts(userId, username) {
   const storiesResult = await getUserStories(userId);
   if (storiesResult.success && Array.isArray(storiesResult.data) && storiesResult.data.length > 0) {
     storiesResult.data.forEach(story => {
+      const storyImageUrl = story.image_url && story.image_url.startsWith('http')
+        ? story.image_url
+        : `${serverBase}${story.image_url}`;
+
       const storyEl = document.createElement('div');
       storyEl.className = 'feed-post dark-box';
       storyEl.innerHTML = `
         <div class="post-header"><span class="username">@${username}</span><small>Story</small></div>
         <div class="post-container">
-          <div class="post-image"><img src="${story.image_url}" alt="Story"></div>
+          <div class="post-image"><img src="${storyImageUrl}" alt="Story"></div>
           <div class="post-info"><p>Postado em: ${formatPostTime ? formatPostTime(story.created_at) : new Date(story.created_at).toLocaleString('pt-BR')}</p></div>
         </div>
       `;

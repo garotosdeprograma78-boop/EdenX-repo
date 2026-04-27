@@ -22,22 +22,26 @@ const upload = multer({
 });
 
 // Rota para criar uma story
-router.post('/create', upload.single('image'), async (req, res) => {
+router.post('/create', auth, upload.single('image'), async (req, res) => {
     try {
-        const { type = 'image', userId } = req.body;
-        // Corrigido: Uso de template literals (crases)
+        const { type = 'image' } = req.body;
+        const userId = req.user.id;
         const imageUrl = req.file ? `/uploads/stories/${req.file.filename}` : null;
 
         if (!imageUrl) {
             return res.status(400).json({ error: 'Imagem é obrigatória' });
         }
 
-        const storyId = await Story.create(userId || null, imageUrl, type);
+        if (!userId) {
+            return res.status(401).json({ error: 'Usuário não autenticado' });
+        }
+
+        const storyId = await Story.create(userId, imageUrl, type);
         res.status(201).json({
             message: 'Story criada com sucesso',
             storyId,
             imageUrl,
-            userId: userId || null
+            userId
         });
     } catch (error) {
         console.error('Erro ao criar story:', error);

@@ -246,16 +246,22 @@ async function deleteComment(postId, commentId) {
 // ====================================================
 
 async function getActiveStories() {
-  return apiRequest('/api/stories/active');
+  // Se o usuário estiver logado, buscar stories dos seguidores
+  if (SESSION.isAuthenticated && SESSION.token) {
+    return apiRequest('/stories/followers');
+  }
+  // Caso contrário, buscar todas as stories ativas (para usuários não logados)
+  return apiRequest('/stories/active');
 }
 
-async function createStory(imageUrl = null, file = null, userId = null) {
+async function createStory(imageUrl = null, file = null) {
+  if (!SESSION.isAuthenticated) {
+    return { success: false, error: 'Usuário não autenticado' };
+  }
+
   if (file) {
     const formData = new FormData();
     formData.append('image', file);
-    if (userId) {
-      formData.append('userId', userId);
-    }
     
     const options = {
       method: 'POST',
@@ -274,19 +280,19 @@ async function createStory(imageUrl = null, file = null, userId = null) {
     }
   }
 
-  return apiRequest('/stories/create', 'POST', { image_url: imageUrl, userId });
+  return apiRequest('/stories/create', 'POST', { image_url: imageUrl });
 }
 
 async function markStoryViewed(storyId) {
-  return apiRequest(`/api/stories/${storyId}/view`, 'POST');
+  return apiRequest(`/stories/${storyId}/view`, 'POST');
 }
 
 async function getUserStories(userId) {
-  return apiRequest(`/api/stories/user/${userId}`);
+  return apiRequest(`/stories/user/${userId}`);
 }
 
 async function getFollowersStories() {
-  return apiRequest('/api/stories/followers/list');
+  return apiRequest('/stories/followers');
 }
 
 // ====================================================
