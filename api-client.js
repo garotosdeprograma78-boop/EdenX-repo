@@ -246,11 +246,34 @@ async function deleteComment(postId, commentId) {
 // ====================================================
 
 async function getActiveStories() {
-  // Se o usuário estiver logado, buscar stories dos seguidores
   if (SESSION.isAuthenticated && SESSION.token) {
-    return apiRequest('/stories/followers');
+    const followersResult = await apiRequest('/stories/followers');
+    const ownResult = await apiRequest(`/stories/user/${SESSION.userId}`);
+
+    const allStories = [];
+    const seenIds = new Set();
+
+    if (ownResult.success && Array.isArray(ownResult.data)) {
+      ownResult.data.forEach(s => {
+        if (!seenIds.has(s.id)) {
+          seenIds.add(s.id);
+          allStories.push(s);
+        }
+      });
+    }
+
+    if (followersResult.success && Array.isArray(followersResult.data)) {
+      followersResult.data.forEach(s => {
+        if (!seenIds.has(s.id)) {
+          seenIds.add(s.id);
+          allStories.push(s);
+        }
+      });
+    }
+
+    allStories.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+    return { success: true, data: allStories };
   }
-  // Caso contrário, buscar todas as stories ativas (para usuários não logados)
   return apiRequest('/stories/active');
 }
 
@@ -293,6 +316,10 @@ async function getUserStories(userId) {
 
 async function getFollowersStories() {
   return apiRequest('/stories/followers');
+}
+
+async function deleteStory(storyId) {
+  return apiRequest(`/stories/${storyId}`, 'DELETE');
 }
 
 // ====================================================

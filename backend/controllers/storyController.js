@@ -155,4 +155,26 @@ exports.getStoryViews = async (req, res) => {
   }
 };
 
+exports.deleteStory = async (req, res) => {
+  try {
+    const userId = req.user ? req.user.id : null;
+    const { storyId } = req.params;
+
+    if (!userId) {
+      return res.status(401).json({ message: 'Usuário não autenticado', success: false });
+    }
+
+    const deleted = await Story.deleteStory(storyId, userId);
+
+    if (deleted) {
+      res.json({ message: 'Story deletada com sucesso', success: true });
+    } else {
+      res.status(404).json({ message: 'Story não encontrada ou você não tem permissão', success: false });
+    }
+  } catch (error) {
+    console.error('Erro ao deletar story:', error);
+    res.status(500).json({ message: 'Erro ao deletar story', success: false });
+  }
+};
+
 exports.uploadMulter = upload.single('image');

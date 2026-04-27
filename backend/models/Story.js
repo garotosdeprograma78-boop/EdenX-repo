@@ -101,6 +101,17 @@ class Story {
     }
   }
 
+  static async deleteStory(storyId, userId) {
+    const query = `DELETE FROM stories WHERE id = ? AND user_id = ?`;
+    try {
+      const result = await pool.execute(query, [storyId, userId]);
+      return result.affectedRows > 0;
+    } catch (error) {
+      console.error('Erro ao deletar story:', error);
+      throw error;
+    }
+  }
+
   static async deleteExpiredStories() {
     const query = `DELETE FROM stories WHERE expires_at < CURRENT_TIMESTAMP`;
     try {
