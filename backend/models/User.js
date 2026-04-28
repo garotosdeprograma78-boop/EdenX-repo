@@ -138,6 +138,17 @@ class User {
       throw error;
     }
   }
+
+  static async deleteById(userId) {
+    const query = `DELETE FROM users WHERE id = ?`;
+    try {
+      const result = await pool.execute(query, [userId]);
+      return result[0].affectedRows > 0;
+    } catch (error) {
+      console.error('Erro ao deletar usuário:', error);
+      throw error;
+    }
+  }
 }
 
 module.exports = User;

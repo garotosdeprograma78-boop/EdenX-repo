@@ -47,6 +47,7 @@ router.get('/', auth, userController.listUsers);
 // Perfil (requer autenticação)
 router.get('/profile', auth, userController.getProfile);
 router.put('/profile', auth, userController.updateProfile);
+router.delete('/profile', auth, userController.deleteAccount);
 router.post('/upload-avatar', auth, upload.single('avatar'), userController.uploadAvatar);
 
 // Perfil público

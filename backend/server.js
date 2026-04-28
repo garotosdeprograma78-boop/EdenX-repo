@@ -100,6 +100,8 @@ io.on('connection', (socket) => {
 });
 
 // Importar rotas
+const auth = require('./middleware/auth');
+const userController = require('./controllers/userController');
 const userRoutes = require('./routes/users');
 const postRoutes = require('./routes/posts');
 const storyRoutes = require('./routes/stories');
@@ -108,6 +110,7 @@ const searchRoutes = require('./routes/search');
 const reelRoutes = require('./routes/reels');
 
 // Usar rotas
+app.delete('/api/users/profile', auth, userController.deleteAccount);
 app.use('/api/users', userRoutes);
 app.use('/api/posts', postRoutes);
 app.use('/api/stories', storyRoutes);

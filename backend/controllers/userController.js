@@ -192,6 +192,22 @@ exports.uploadAvatar = async (req, res) => {
   }
 };
 
+exports.deleteAccount = async (req, res) => {
+  try {
+    const userId = req.user.id;
+
+    const deleted = await User.deleteById(userId);
+    if (!deleted) {
+      return res.status(404).json({ message: 'Usuário não encontrado ou já excluído' });
+    }
+
+    res.json({ success: true, message: 'Conta excluída com sucesso' });
+  } catch (error) {
+    console.error('Erro ao deletar conta:', error);
+    res.status(500).json({ message: 'Erro ao excluir conta' });
+  }
+};
+
 exports.getUserProfile = async (req, res) => {
   try {
     const { username } = req.params;

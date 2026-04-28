@@ -1,6 +1,7 @@
+
 <!DOCTYPE html>
 <html lang="pt-BR">
-
+ 
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -10,13 +11,13 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
 </head>
-
+ 
 <body>
     <header class="top-logo">
         <img src="./images/EdenX.png" alt="Logo">
         <p id="codevast">@CODEVAST</p>
     </header>
-
+ 
     <div class="app-container">
         <nav class="sidebar">
             <div class="nav-item active" data-target="view-feed"><i class="fa-solid fa-house"></i><span>Início</span>
@@ -29,21 +30,21 @@
                     class="fa-regular fa-paper-plane"></i><span>Direct</span></div>
             <div class="nav-item" data-target="view-profile"><i class="fa-solid fa-user"></i><span>Perfil</span></div>
         </nav>
-
+ 
         <main class="content-area">
             <section id="view-feed" class="view active">
-
+ 
                 <div class="feed-content">
                     <!-- Stories -->
                     <div class="stories-row" id="stories-wrapper"></div>
-
+ 
                     <!-- Criar nova postagem -->
                     <div class="create-post-card">
                         <div class="create-post-header">
                             <img id="feed-user-avatar" class="create-avatar" src="https://i.pravatar.cc/150?u=mockuser" alt="Seu avatar">
                             <input id="create-post-input" type="text" placeholder="Diga alguma coisa..." />
                         </div>
-
+ 
                         <div class="create-post-meta">
                             <div class="create-post-options">
                                 <button id="select-image-btn" class="icon-btn" aria-label="Buscar na galeria"><i class="fa-regular fa-image"></i></button>
@@ -54,19 +55,19 @@
                                 <button class="btn-share" id="share-post-btn">Compartilhar</button>
                             </div>
                         </div>
-
+ 
                         <input type="file" id="create-post-image-input" accept="image/*" style="display:none;" />
                         <div id="post-image-preview" style="display:none; margin-top:8px;"></div>
                         <div class="create-location-row" id="create-location-row" style="display:none;">
                             <input id="create-post-location" style="color: white;" type="text" placeholder="Adicionar local..." />
                         </div>
                     </div>
-
+ 
                     <!-- Feed de posts -->
                     <div id="posts-feed" class="posts-feed"></div>
                 </div>
             </section>
-
+ 
             <!-- Modal de comentários (reutilizável para qualquer post) -->
             <div id="comments-modal" class="comments-modal-overlay" style="display: none;">
                 <div class="comments-modal">
@@ -88,7 +89,7 @@
                     </div>
                 </div>
             </div>
-
+ 
             <section id="view-search" class="view">
                 <div class="search-header cyan-panel">
                     <div class="search-bar dark-box">
@@ -334,6 +335,7 @@
                     <h3>Conta</h3>
                     <button class="settings-btn" id="switch-account-btn">Alternar conta</button>
                     <button class="settings-btn" id="archived-posts-btn">Posts arquivados</button>
+                    <button class="settings-btn btn-delete-account" id="delete-account-btn">Deletar conta</button>
                 </div>
 
                 <div class="settings-section">

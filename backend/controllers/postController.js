@@ -29,10 +29,11 @@ exports.createPost = async (req, res) => {
     }
 
     const postId = await Post.create(userId, caption, imageUrl);
+    const post = await Post.findById(postId);
 
     res.status(201).json({
       message: 'Post criado com sucesso',
-      postId
+      post: post || { id: postId, user_id: userId, caption, image_url: imageUrl }
     });
   } catch (error) {
     console.error(error);

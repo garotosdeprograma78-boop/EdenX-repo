@@ -187,6 +187,10 @@ async function getUserPosts(userId, limit = 20, offset = 0) {
   return apiRequest(`/users/${userId}/posts?limit=${limit}&offset=${offset}`);
 }
 
+async function deleteAccount() {
+  return apiRequest('/users/profile', 'DELETE');
+}
+
 async function createPost(caption, imageUrl = null, file = null) {
   if (file) {
     const formData = new FormData();

@@ -1456,6 +1456,7 @@ const SETTINGS_TRANSLATIONS = {
         account: 'Conta',
         switchAccount: 'Alternar conta',
         archivedPosts: 'Posts arquivados',
+        deleteAccount: 'Deletar conta',
         privacy: 'Privacidade',
         privateAccount: 'Conta privada',
         bestFriends: 'Melhores amigos',
@@ -1469,6 +1470,7 @@ const SETTINGS_TRANSLATIONS = {
         account: 'Account',
         switchAccount: 'Switch account',
         archivedPosts: 'Archived posts',
+        deleteAccount: 'Delete account',
         privacy: 'Privacy',
         privateAccount: 'Private account',
         bestFriends: 'Close friends',
@@ -1482,6 +1484,7 @@ const SETTINGS_TRANSLATIONS = {
         account: 'Cuenta',
         switchAccount: 'Cambiar cuenta',
         archivedPosts: 'Publicaciones archivadas',
+        deleteAccount: 'Eliminar cuenta',
         privacy: 'Privacidad',
         privateAccount: 'Cuenta privada',
         bestFriends: 'Mejores amigos',
@@ -1514,6 +1517,9 @@ function applyLanguage(language) {
 
     const archivedBtn = document.getElementById('archived-posts-btn');
     if (archivedBtn) archivedBtn.textContent = dict.archivedPosts;
+
+    const deleteAccountBtn = document.getElementById('delete-account-btn');
+    if (deleteAccountBtn) deleteAccountBtn.textContent = dict.deleteAccount;
 
     const labels = {
         'privacy-toggle': dict.privateAccount,
@@ -1580,6 +1586,26 @@ function handleLogout() {
             window.location.href = 'login/index.html';
         }, 300);
     }
+}
+
+async function handleDeleteAccount() {
+    if (!confirm('Tem certeza de que deseja deletar sua conta? Esta ação não pode ser desfeita.')) {
+        return;
+    }
+
+    closeSettingsModal();
+
+    const result = await deleteAccount();
+    if (result && result.success) {
+        alert('Sua conta foi deletada com sucesso.');
+        logout();
+        setTimeout(() => {
+            window.location.href = 'login/index.html';
+        }, 300);
+        return;
+    }
+
+    alert(result?.message || 'Não foi possível deletar a conta. Tente novamente.');
 }
 
 function renderSettingsList(containerId, items) {
@@ -1654,6 +1680,9 @@ function initializeSettings() {
     if (archivedBtn) archivedBtn.addEventListener('click', () => {
         alert('Funcionalidade de posts arquivados ainda não implementada.');
     });
+
+    const deleteAccountBtn = document.getElementById('delete-account-btn');
+    if (deleteAccountBtn) deleteAccountBtn.addEventListener('click', handleDeleteAccount);
 
     const privacyToggle = document.getElementById('privacy-toggle');
     if (privacyToggle) {
